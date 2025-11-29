@@ -1,106 +1,62 @@
 <?php
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
-
-use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerSetTable;
+use Bitrix\Main\Application;
 
 $module_id = "mycompany.banner";
 Loader::includeModule($module_id);
-$APPLICATION->SetTitle("Наборы баннеров");
+$APPLICATION->SetTitle("Ваши наборы баннеров");
 
 $request = Application::getInstance()->getContext()->getRequest();
 
-// Обработка AJAX запроса на создание набора
 if ($request->isPost() && $request->getPost('action') === 'create_set' && check_bitrix_sessid()) {
     $APPLICATION->RestartBuffer();
     $name = $request->getPost('name');
-    if (empty($name)) {
-        echo json_encode(['error' => 'Название не может быть пустым']);
-        die();
-    }
-    
-    $result = BannerSetTable::add(['NAME' => $name]);
-    
-    if ($result->isSuccess()) {
-        echo json_encode(['success' => true, 'id' => $result->getId()]);
-    } else {
-        echo json_encode(['error' => $result->getErrorMessages()]);
-    }
+    $res = BannerSetTable::add(['NAME' => $name ?: 'Новый набор']);
+    echo json_encode(['success' => $res->isSuccess(), 'id' => $res->getId()]);
     die();
 }
 
-
-// Получаем все сеты
 $sets = BannerSetTable::getList()->fetchAll();
-
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
 ?>
-
-<!-- Стили -->
 <style>
-    .set-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .set-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-    .set-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.12); }
-    .set-card-name { font-weight: 600; font-size: 16px; }
-    .set-card-id { font-size: 13px; color: #888; }
+    .sets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+    .set-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; text-align: center; border: 1px solid #eee; }
+    .set-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: #2bc647; }
+    .set-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #333; }
+    .set-id { color: #999; font-size: 12px; }
+    .btn-create { background: #2bc647; color: #fff; border: none; padding: 12px 25px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 14px; }
 </style>
 
-<div class="set-list-header">
-    <h1>Наборы баннеров</h1>
-    <button id="createNewSetBtn" class="adm-btn-save">Создать новый набор</button>
+<div style="text-align: right;">
+    <button class="btn-create" onclick="createSet()">+ Создать новый баннер</button>
 </div>
 
-<div class="set-list" id="setList">
-    <?php if (empty($sets)): ?>
-        <p>Пока не создано ни одного набора баннеров.</p>
-    <?php else: ?>
-        <?php foreach ($sets as $set): ?>
-        <div class="set-card"
-             onclick="location.href='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANGUAGE_ID?>'"
-        >
-            <div>
-                <div class="set-card-name"><?=htmlspecialcharsbx($set['NAME'])?></div>
-                <div class="set-card-id">ID: <?=$set['ID']?></div>
-            </div>
-            <span class="adm-btn">Редактировать</span>
+<div class="sets-grid">
+    <?php foreach($sets as $set): ?>
+        <div class="set-card" onclick="location.href='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANGUAGE_ID?>'">
+            <div class="set-name"><?=htmlspecialcharsbx($set['NAME'])?></div>
+            <div class="set-id">ID набора: <?=$set['ID']?></div>
         </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
+    <?php endforeach; ?>
 </div>
 
 <script>
-    document.getElementById('createNewSetBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const name = prompt('Введите название нового набора:', 'Новый набор');
-        
-        if (name) {
-            const data = new FormData();
-            data.append('action', 'create_set');
-            data.append('name', name);
-            data.append('sessid', BX.bitrix_sessid());
-
-            fetch('', {
-                method: 'POST',
-                body: data
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    location.href = `mycompany_banner_constructor.php?set_id=${result.id}&lang=<?=LANGUAGE_ID?>`;
-                } else {
-                    alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Произошла ошибка при создании набора.');
+function createSet() {
+    let name = prompt("Введите название для нового баннера:");
+    if (name) {
+        let fd = new FormData();
+        fd.append('action', 'create_set');
+        fd.append('name', name);
+        fd.append('sessid', '<?=bitrix_sessid()?>');
+        fetch('', {method: 'POST', body: fd})
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) location.href = 'mycompany_banner_constructor.php?set_id='+res.id+'&lang=<?=LANGUAGE_ID?>';
             });
-        }
-    });
+    }
+}
 </script>
-
-
-<?php
-require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
+<?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>

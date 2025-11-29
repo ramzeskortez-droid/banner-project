@@ -1,103 +1,49 @@
 <?php
-// Это AJAX обработчик, отключаем статистику и визуальную часть
 define("NO_KEEP_STATISTIC", true);
-define("NO_AGENT_STATISTIC", true);
-define("NO_AGENT_CHECK", true);
-define("NOT_CHECK_PERMISSIONS", true); // Доверяем проверке sessid
-
+define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
 
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerTable;
 
-$response = ['success' => false, 'errors' => [], 'data' => null];
-$request = Application::getInstance()->getContext()->getRequest();
-$module_id = 'mycompany.banner';
+$resp = ['success' => false, 'errors' => []];
+Loader::includeModule('mycompany.banner');
+$req = Application::getInstance()->getContext()->getRequest();
 
-try {
-    // 1. Базовые проверки
-    if (!Loader::includeModule($module_id)) {
-        throw new \Exception('Модуль mycompany.banner не установлен.');
-    }
-    if (!$request->isPost()) {
-        throw new \Exception('Неверный метод запроса.');
-    }
-    if (!check_bitrix_sessid()) {
-        throw new \Exception('Ошибка сессии.');
-    }
-
-    // 2. Проверка действия
-    $action = $request->getPost('action');
-    if ($action !== 'save_slot') {
-        throw new \Exception('Неизвестное действие.');
-    }
-
-    // 3. Получение и валидация данных
-    $postData = $request->getPostList()->toArray();
-    $setId = (int)$postData['set_id'];
-    $slotIndex = (int)$postData['slot_index'];
-
-    if ($setId <= 0) {
-        throw new \Exception('Неверный ID набора.');
-    }
-    if ($slotIndex <= 0 || $slotIndex > 8) { // 8 слотов в новой сетке
-        throw new \Exception('Неверный индекс слота.');
-    }
-
-    // 4. Подготовка данных для сохранения
+if ($req->getPost('action') === 'save_slot' && check_bitrix_sessid()) {
     $data = [
-        'SET_ID' => $setId,
-        'SLOT_INDEX' => $slotIndex,
-        'TITLE' => htmlspecialcharsbx($postData['title']),
-        'SUBTITLE' => htmlspecialcharsbx($postData['subtitle']),
-        'LINK' => htmlspecialcharsbx($postData['link']),
-        'COLOR' => htmlspecialcharsbx($postData['color']),
+        'SET_ID' => (int)$req->getPost('set_id'),
+        'SLOT_INDEX' => (int)$req->getPost('slot_index'),
+        'TITLE' => $req->getPost('title'),
+        'SUBTITLE' => $req->getPost('subtitle'),
+        'LINK' => $req->getPost('link'),
+        'COLOR' => $req->getPost('color'),
     ];
 
-    // 5. Обработка загрузки файла
-    $files = $request->getFileList()->toArray();
-    if (isset($files['image']) && $files['image']['error'] === UPLOAD_ERR_OK) {
-        $fileArray = $files['image'];
-        $fileId = CFile::SaveFile($fileArray, $module_id);
-        if ($fileId) {
-            $data['IMAGE'] = CFile::GetPath($fileId);
-        } else {
-             $response['errors'][] = 'Не удалось сохранить файл.';
-        }
+    // Обработка картинки
+    if (!empty($_FILES['image_file']['name'])) {
+        $fid = \CFile::SaveFile($_FILES['image_file'], 'mycompany.banner');
+        if($fid) $data['IMAGE'] = \CFile::GetPath($fid);
+    } elseif ($url = $req->getPost('image_url')) {
+        $data['IMAGE'] = $url;
     }
 
-    // 6. Поиск существующего баннера и обновление/добавление
-    $existing = BannerTable::getList([
-        'filter' => ['=SET_ID' => $setId, '=SLOT_INDEX' => $slotIndex]
-    ])->fetch();
-
-    if ($existing) {
-        // Если есть файл и мы его не обновили, сохраняем старый
-        if (empty($data['IMAGE']) && !empty($existing['IMAGE'])) {
-           $data['IMAGE'] = $existing['IMAGE'];
-        }
-        $result = BannerTable::update($existing['ID'], $data);
-    } else {
-        $result = BannerTable::add($data);
-    }
+    $exist = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
     
-    // 7. Формирование успешного ответа
-    if ($result->isSuccess()) {
-        $id = $existing ? $existing['ID'] : $result->getId();
-        $savedData = BannerTable::getById($id)->fetch();
-        
-        $response['success'] = true;
-        $response['data'] = $savedData; // Отправляем актуальные данные обратно
-    } else {
-        $response['errors'] = $result->getErrorMessages();
-    }
+    if($exist) $res = BannerTable::update($exist['ID'], $data);
+    else $res = BannerTable::add($data);
 
-} catch (\Exception $e) {
-    $response['errors'][] = $e->getMessage();
+    if($res->isSuccess()) {
+        $resp['success'] = true;
+        $id = $exist ? $exist['ID'] : $res->getId();
+        $resp['data'] = BannerTable::getById($id)->fetch();
+    } else {
+        $resp['errors'] = $res->getErrorMessages();
+    }
+} else {
+    $resp['errors'][] = 'Ошибка действия или сессии';
 }
 
-// --- Отдаем JSON ответ ---
 header('Content-Type: application/json');
-echo json_encode($response);
-die();
+echo json_encode($resp);

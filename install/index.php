@@ -21,17 +21,15 @@ class mycompany_banner extends CModule
         include(__DIR__ . "/version.php");
         $this->MODULE_VERSION = $arModuleVersion["VERSION"];
         $this->MODULE_VERSION_DATE = $arModuleVersion["VERSION_DATE"];
-        $this->MODULE_NAME = "Модуль Баннеров";
-        $this->MODULE_DESCRIPTION = "Модуль для управления баннерами";
-        $this->PARTNER_NAME = "Моя Компания";
-        $this->PARTNER_URI = "http://mycompany.ru";
+        $this->MODULE_NAME = "Модуль Баннеров (Конструктор)";
+        $this->MODULE_DESCRIPTION = "Управление рекламными сетками";
+        $this->PARTNER_NAME = "ООО ТлиЖу";
+        $this->PARTNER_URI = "http://example.com";
     }
 
     public function DoInstall()
     {
         ModuleManager::registerModule($this->MODULE_ID);
-        // Пересоздаем БД для применения изменений
-        $this->UnInstallDB();
         $this->InstallDB();
         $this->InstallFiles();
         $this->RegisterEvents();
@@ -39,7 +37,6 @@ class mycompany_banner extends CModule
 
     public function DoUninstall()
     {
-        // Сначала удаляем все созданное модулем, потом его отключаем
         $this->UnInstallFiles();
         $this->UnInstallDB();
         $this->UnRegisterEvents();
@@ -48,49 +45,30 @@ class mycompany_banner extends CModule
     
     public function InstallFiles()
     {
-        // Копируем компоненты
-        CopyDirFiles(
-            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/install/components",
-            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/components",
-            true, true
-        );
-        
-        // Копируем админские страницы
-        CopyDirFiles(
-            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/admin",
-            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin",
-            true, true
-        );
-        
-        // Переименовываем файлы, чтобы они были уникальными в /bitrix/admin/
-        if (file_exists($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/banner_constructor.php")) {
-            rename(
-                $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/banner_constructor.php",
-                $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/mycompany_banner_constructor.php"
-            );
+        CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/install/components", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/components", true, true);
+        CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/admin", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin", true, true);
+
+        // Явное переименование файлов для админки
+        $adminFiles = [
+            'banner_settings.php'    => 'mycompany_banner_settings.php',
+            'banner_constructor.php' => 'mycompany_banner_constructor.php',
+            'ajax_save_banner.php'   => 'mycompany_banner_ajax_save_banner.php'
+        ];
+
+        foreach ($adminFiles as $orig => $target) {
+            if (file_exists($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig)) {
+                rename($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig, $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $target);
+            }
         }
-        if (file_exists($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/ajax_save_banner.php")) {
-            rename(
-                $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/ajax_save_banner.php",
-                $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/mycompany_banner_ajax_save_banner.php"
-            );
-        }
-        
         return true;
     }
 
     public function UnInstallFiles()
     {
         DeleteDirFilesEx("/bitrix/components/mycompany/banner");
-        
-        // Удаляем новые админские файлы
+        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_settings.php");
         DeleteDirFilesEx("/bitrix/admin/mycompany_banner_constructor.php");
         DeleteDirFilesEx("/bitrix/admin/mycompany_banner_ajax_save_banner.php");
-        
-        // Удаляем старые админские файлы на случай, если они остались
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_settings.php");
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_edit.php");
-        
         return true;
     }
 
@@ -98,43 +76,28 @@ class mycompany_banner extends CModule
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             try {
-                // Создаем таблицы
                 \MyCompany\Banner\BannerTable::getEntity()->createDbTable();
                 \MyCompany\Banner\BannerSetTable::getEntity()->createDbTable();
-
-                // Если таблица сетов пустая, создаем дефолтный сет
-                $setTable = \MyCompany\Banner\BannerSetTable::getList(['limit' => 1]);
-                if ($setTable->fetch()) {
-                    // Таблица не пуста
-                } else {
-                    \MyCompany\Banner\BannerSetTable::add(['ID' => 1, 'NAME' => 'Главная страница']);
+                if (\MyCompany\Banner\BannerSetTable::getCount() == 0) {
+                    \MyCompany\Banner\BannerSetTable::add(['NAME' => 'Главная страница']);
                 }
-            } catch (\Exception $e) {
-                // Игнорируем ошибку, если таблица уже существует
-            }
+            } catch (\Exception $e) {}
         }
     }
 
     public function UnInstallDB()
     {
         if (Loader::includeModule($this->MODULE_ID)) {
-            try {
-                $connection = Application::getInstance()->getConnection();
-                $connection->dropTable(\MyCompany\Banner\BannerTable::getTableName());
-                $connection->dropTable(\MyCompany\Banner\BannerSetTable::getTableName());
-            } catch (\Exception $e) {
-                 // Игнорируем ошибку, если таблицы не существует
-            }
+            $conn = Application::getInstance()->getConnection();
+            $conn->dropTable(\MyCompany\Banner\BannerTable::getTableName());
+            $conn->dropTable(\MyCompany\Banner\BannerSetTable::getTableName());
         }
     }
-    
-    public function RegisterEvents() {
-        $eventManager = EventManager::getInstance();
-        $eventManager->registerEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\MyCompany\Banner\Event", "onBuildGlobalMenu");
-    }
 
+    public function RegisterEvents() {
+        EventManager::getInstance()->registerEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
+    }
     public function UnRegisterEvents() {
-        $eventManager = EventManager::getInstance();
-        $eventManager->unRegisterEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\MyCompany\Banner\Event", "onBuildGlobalMenu");
+        EventManager::getInstance()->unRegisterEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
     }
 }
