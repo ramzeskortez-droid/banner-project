@@ -3,6 +3,8 @@ use Bitrix\Main\Application;
 use Bitrix\Main\EventManager;
 use Bitrix\Main\Loader;
 use Bitrix\Main\ModuleManager;
+use MyCompany\Banner\BannerSetTable;
+use MyCompany\Banner\BannerTable;
 
 class mycompany_banner extends CModule
 {
@@ -50,7 +52,8 @@ class mycompany_banner extends CModule
         $adminFiles = [
             'banner_settings.php'    => 'mycompany_banner_settings.php',
             'banner_constructor.php' => 'mycompany_banner_constructor.php',
-            'ajax_save_banner.php'   => 'mycompany_banner_ajax_save_banner.php'
+            'ajax_save_banner.php'   => 'mycompany_banner_ajax_save_banner.php',
+            'tool_backup.php'        => 'mycompany_banner_backup.php'
         ];
 
         foreach ($adminFiles as $orig => $target) {
@@ -69,6 +72,7 @@ class mycompany_banner extends CModule
         DeleteDirFilesEx("/bitrix/admin/mycompany_banner_settings.php");
         DeleteDirFilesEx("/bitrix/admin/mycompany_banner_constructor.php");
         DeleteDirFilesEx("/bitrix/admin/mycompany_banner_ajax_save_banner.php");
+        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_backup.php");
         return true;
     }
 
@@ -76,21 +80,56 @@ class mycompany_banner extends CModule
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             $conn = Application::getInstance()->getConnection();
-            
-            // Recreate tables to apply changes
-            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerTable::getTableName());
-            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerSetTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . BannerTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . BannerSetTable::getTableName());
 
             try {
-                \MyCompany\Banner\BannerTable::getEntity()->createDbTable();
-                \MyCompany\Banner\BannerSetTable::getEntity()->createDbTable();
+                BannerTable::getEntity()->createDbTable();
+                BannerSetTable::getEntity()->createDbTable();
                 
-                if (\MyCompany\Banner\BannerSetTable::getCount() == 0) {
-                    \MyCompany\Banner\BannerSetTable::add(['NAME' => 'Главная страница']);
+                if (BannerSetTable::getCount() == 0) {
+                    $this->smartFill();
                 }
             } catch (\Exception $e) {
-                // Log error if needed
+                // Log error
             }
+        }
+    }
+
+    public function smartFill()
+    {
+        $res = BannerSetTable::add(['NAME' => 'Главная страница']);
+        if (!$res->isSuccess()) {
+            return;
+        }
+        $setId = $res->getId();
+
+        if (!Loader::includeModule('iblock')) {
+            return;
+        }
+
+        $sectionsRes = \CIBlockSection::GetList(
+            ['ID' => 'ASC'],
+            ['ACTIVE' => 'Y', 'GLOBAL_ACTIVE' => 'Y', 'CNT_ACTIVE' => 'Y'],
+            false,
+            ['ID', 'NAME', 'SECTION_PAGE_URL', 'DESCRIPTION'],
+            ['nTopCount' => 8]
+        );
+
+        $slot = 1;
+        $colors = ['#ff4d4d', '#ff9f43', '#feca57', '#1dd1a1', '#5f27cd', '#54a0ff', '#ff6b81', '#576574'];
+        
+        while ($section = $sectionsRes->Fetch()) {
+            BannerTable::add([
+                'SET_ID' => $setId,
+                'SLOT_INDEX' => $slot,
+                'TITLE' => $section['NAME'],
+                'SUBTITLE' => TruncateText(strip_tags($section['DESCRIPTION']), 100),
+                'LINK' => $section['SECTION_PAGE_URL'],
+                'COLOR' => $colors[$slot - 1],
+                'CATEGORY_ID' => $section['ID'],
+            ]);
+            $slot++;
         }
     }
 
@@ -98,8 +137,8 @@ class mycompany_banner extends CModule
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             $conn = Application::getInstance()->getConnection();
-            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerTable::getTableName());
-            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerSetTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . BannerTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . BannerSetTable::getTableName());
         }
     }
 

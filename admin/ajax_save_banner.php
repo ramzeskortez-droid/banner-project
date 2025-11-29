@@ -31,32 +31,29 @@ try {
             'CATEGORY_ID'  => (int)$req->getPost('category_id'),
             'IMAGE_TYPE'   => $req->getPost('image_type') ?: 'background',
             'IMAGE_ALIGN'  => $req->getPost('image_align') ?: 'center',
+            'TEXT_COLOR'   => $req->getPost('text_color') ?: '#333333',
+            'FONT_SIZE'    => $req->getPost('font_size') ?: 'normal',
         ];
 
-        // If Category Mode is on, get data from iblock section
-        if ($data['CATEGORY_ID'] > 0 && Loader::includeModule('iblock')) {
+        if ($req->getPost('category_mode') === 'Y' && $data['CATEGORY_ID'] > 0 && Loader::includeModule('iblock')) {
             $res = CIBlockSection::GetByID($data['CATEGORY_ID']);
             if ($sec = $res->GetNext()) {
                 $data['TITLE'] = $sec['NAME'];
                 $data['LINK'] = $sec['SECTION_PAGE_URL'];
-                $data['SUBTITLE'] = $sec['DESCRIPTION'];
+                $data['SUBTITLE'] = strip_tags($sec['DESCRIPTION']);
             }
         }
         
-        // Handle image upload
-        $currentImage = null;
         $exist = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
-        if ($exist) {
-            $currentImage = $exist['IMAGE'];
-        }
 
         if (!empty($_FILES['image_file']['name'])) {
             $fid = \CFile::SaveFile($_FILES['image_file'], 'mycompany.banner');
-            if($fid) $data['IMAGE'] = \CFile::GetPath($fid);
-        } elseif ($url = $req->getPost('image_url')) {
-            $data['IMAGE'] = trim($url);
+            $data['IMAGE'] = $fid ? \CFile::GetPath($fid) : '';
+        } elseif ($url = trim($req->getPost('image_url'))) {
+            $data['IMAGE'] = $url;
         } else {
-             $data['IMAGE'] = $currentImage; // Keep old image if nothing new is provided
+            // If no new image, keep the old one or set to empty if it's a new banner
+            $data['IMAGE'] = $exist['IMAGE'] ?? '';
         }
 
         if($exist) {
@@ -72,11 +69,7 @@ try {
         } else {
             $resp['errors'] = $res->getErrorMessages();
         }
-
-    } else {
-        $resp['errors'][] = 'Неверное действие';
     }
-
 } catch (\Exception $e) {
     $resp['errors'][] = $e->getMessage();
 }

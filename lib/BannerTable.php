@@ -8,7 +8,8 @@ use Bitrix\Main\ORM\Fields\TextField;
 
 class BannerTable extends DataManager
 {
-    public static function getTableName() {
+    public static function getTableName()
+    {
         return 'mycompany_banner';
     }
 
@@ -22,15 +23,28 @@ class BannerTable extends DataManager
             new TextField('SUBTITLE'),
             new StringField('LINK'),
             new StringField('COLOR'),
-            new StringField('IMAGE'),
+
+            // Fix for v1.0.10: Image is not required
+            new StringField('IMAGE', [
+                'nullable' => true,
+                'default_value' => ''
+            ]),
             
-            // New fields for v1.0.9
             new IntegerField('CATEGORY_ID', ['nullable' => true]),
+            
             new StringField('IMAGE_TYPE', [
-                'default_value' => 'background', // 'background' or 'icon'
+                'default_value' => 'background',
             ]),
             new StringField('IMAGE_ALIGN', [
-                'default_value' => 'center', // 'left', 'center', 'right'
+                'default_value' => 'center',
+            ]),
+
+            // New fields for v1.0.10
+            new StringField('TEXT_COLOR', [
+                'default_value' => '#333333'
+            ]),
+            new StringField('FONT_SIZE', [
+                'default_value' => 'normal' // small, normal, large
             ]),
         ];
     }

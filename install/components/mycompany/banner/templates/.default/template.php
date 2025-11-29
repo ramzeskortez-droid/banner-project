@@ -1,29 +1,33 @@
-<?php if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die(); ?>
+<?php if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
+/** @var array $arResult */
+?>
 <div class="my-banner-grid">
-<?php foreach($arResult['BANNERS'] as $b):
-    if(!$b) continue;
+<?php foreach($arResult['BANNERS'] as $banner):
+    if(!$banner) continue;
     
-    // Base classes
-    $slotIndex = (int)$b['SLOT_INDEX'];
+    // Classes
+    $slotIndex = (int)$banner['SLOT_INDEX'];
     $sizeClass = ($slotIndex <= 4) ? 'large' : 'small';
-    $imageTypeClass = 'is-' . ($b['IMAGE_TYPE'] ?: 'background');
-    $alignClass = 'align-' . ($b['IMAGE_ALIGN'] ?: 'center');
+    $imageTypeClass = 'is-' . ($banner['IMAGE_TYPE'] ?: 'background');
+    $alignClass = 'align-' . ($banner['IMAGE_ALIGN'] ?: 'center');
+    $fontClass = 'fs-' . ($banner['FONT_SIZE'] ?: 'normal');
     $classes = "banner-item {$sizeClass} {$imageTypeClass} {$alignClass}";
 
-    // Inline styles
-    $styles = "background-color: {$b['COLOR']};";
-    if ($b['IMAGE_TYPE'] === 'background' && $b['IMAGE']) {
-        $styles .= " background-image: url('{$b['IMAGE']}');";
+    // Styles
+    $styles = "background-color: {$banner['COLOR']};";
+    if ($imageTypeClass === 'is-background' && $banner['IMAGE']) {
+        $styles .= " background-image: url('".htmlspecialcharsbx($banner['IMAGE'])."');";
     }
 ?>
-    <a href="<?=htmlspecialcharsbx($b['LINK'])?>" class="<?=$classes?>" style="<?=$styles?>">
-        <div class="b-content">
-            <?php if($b['TITLE']): ?><div class="b-title"><?=$b['TITLE']?></div><?php endif; ?>
-            <?php if($b['SUBTITLE']): ?><div class="b-sub"><?=$b['SUBTITLE']?></div><?php endif; ?>
+    <a href="<?=htmlspecialcharsbx($banner['LINK'])?>" class="<?=$classes?>" style="<?=$styles?>">
+        <div class="banner-slot-content <?=$fontClass?>" style="color: <?=htmlspecialcharsbx($banner['TEXT_COLOR'])?>;">
+            <?php if($banner['TITLE']): ?><div class="b-title"><?=$banner['TITLE']?></div><?php endif; ?>
+            <?php if($banner['SUBTITLE']): ?><div class="b-sub"><?=$banner['SUBTITLE']?></div><?php endif; ?>
         </div>
-        <?php if($b['IMAGE_TYPE'] === 'icon' && $b['IMAGE']): ?>
+
+        <?php if($imageTypeClass === 'is-icon' && $banner['IMAGE']): ?>
             <div class="b-icon-wrapper">
-                <img src="<?=$b['IMAGE']?>" class="b-img-icon">
+                <img src="<?=htmlspecialcharsbx($banner['IMAGE'])?>" class="b-icon-img" alt="">
             </div>
         <?php endif; ?>
     </a>
