@@ -1,9 +1,8 @@
 <?php
-use Bitrix\Main\Localization\Loc;
-use Bitrix\Main\ModuleManager;
-use Bitrix\Main\EventManager;
 use Bitrix\Main\Application;
+use Bitrix\Main\EventManager;
 use Bitrix\Main\Loader;
+use Bitrix\Main\ModuleManager;
 
 class mycompany_banner extends CModule
 {
@@ -48,7 +47,6 @@ class mycompany_banner extends CModule
         CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/install/components", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/components", true, true);
         CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/admin", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin", true, true);
 
-        // Явное переименование файлов для админки
         $adminFiles = [
             'banner_settings.php'    => 'mycompany_banner_settings.php',
             'banner_constructor.php' => 'mycompany_banner_constructor.php',
@@ -56,8 +54,10 @@ class mycompany_banner extends CModule
         ];
 
         foreach ($adminFiles as $orig => $target) {
-            if (file_exists($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig)) {
-                rename($_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig, $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $target);
+            $pathOrig = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig;
+            $pathTarget = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $target;
+            if (file_exists($pathOrig) && !file_exists($pathTarget)) {
+                rename($pathOrig, $pathTarget);
             }
         }
         return true;
@@ -75,13 +75,22 @@ class mycompany_banner extends CModule
     public function InstallDB()
     {
         if (Loader::includeModule($this->MODULE_ID)) {
+            $conn = Application::getInstance()->getConnection();
+            
+            // Recreate tables to apply changes
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerSetTable::getTableName());
+
             try {
                 \MyCompany\Banner\BannerTable::getEntity()->createDbTable();
                 \MyCompany\Banner\BannerSetTable::getEntity()->createDbTable();
+                
                 if (\MyCompany\Banner\BannerSetTable::getCount() == 0) {
                     \MyCompany\Banner\BannerSetTable::add(['NAME' => 'Главная страница']);
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                // Log error if needed
+            }
         }
     }
 
@@ -89,14 +98,15 @@ class mycompany_banner extends CModule
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             $conn = Application::getInstance()->getConnection();
-            $conn->dropTable(\MyCompany\Banner\BannerTable::getTableName());
-            $conn->dropTable(\MyCompany\Banner\BannerSetTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerTable::getTableName());
+            $conn->queryExecute('DROP TABLE IF EXISTS ' . \MyCompany\Banner\BannerSetTable::getTableName());
         }
     }
 
     public function RegisterEvents() {
         EventManager::getInstance()->registerEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
     }
+
     public function UnRegisterEvents() {
         EventManager::getInstance()->unRegisterEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
     }
