@@ -2,15 +2,7 @@
 if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 /** @var array $arParams */
 /** @var array $arResult */
-/** @global CMain $APPLICATION */
-/** @global CUser $USER */
-/** @global CDatabase $DB */
-/** @var CBitrixComponentTemplate $this */
-/** @var string $templateName */
-/** @var string $templateFile */
-/** @var string $templateFolder */
-/** @var string $componentPath */
-/** @var CBitrixComponent $component */
+
 $this->setFrameMode(true);
 
 if (empty($arResult['BANNERS'])) {
@@ -21,17 +13,23 @@ if (empty($arResult['BANNERS'])) {
 <div class="banner-grid-container">
     <?php for ($i = 1; $i <= 8; $i++):
         $banner = $arResult['BANNERS'][$i] ?? null;
-        $isLarge = $i <= 4;
-        $class = $isLarge ? 'large' : 'small';
         if (!$banner) continue; // Не выводим пустые слоты
+
+        // Определяем класс для размера слота
+        $isLarge = ($i <= 4);
+        $sizeClass = $isLarge ? 'banner-slot-large' : 'banner-slot-small';
     ?>
-        <a href="<?=htmlspecialcharsbx($banner['LINK_URL'] ?? '#')?>" class="banner-slot banner-slot-<?=$class?>" style="background-color: <?=htmlspecialcharsbx($banner['THEME_COLOR'])?>; color: #fff;">
+        <a href="<?=htmlspecialcharsbx($banner['LINK'] ?? '#')?>" class="banner-slot <?=$sizeClass?>" style="background-color: <?=htmlspecialcharsbx($banner['COLOR'])?>;">
             <div class="banner-slot-content">
-                <div class="banner-slot-title"><?=htmlspecialcharsbx($banner['TITLE'])?></div>
-                <div class="banner-slot-announcement"><?=htmlspecialcharsbx($banner['ANNOUNCEMENT'])?></div>
+                <?php if (!empty($banner['TITLE'])): ?>
+                    <div class="banner-slot-title"><?=htmlspecialcharsbx($banner['TITLE'])?></div>
+                <?php endif; ?>
+                <?php if (!empty($banner['SUBTITLE'])): ?>
+                    <div class="banner-slot-announcement"><?=htmlspecialcharsbx($banner['SUBTITLE'])?></div>
+                <?php endif; ?>
             </div>
-            <?php if ($isLarge && !empty($banner['IMAGE_LINK'])): ?>
-                <img src="<?=htmlspecialcharsbx($banner['IMAGE_LINK'])?>" alt="" class="banner-slot-image">
+            <?php if ($isLarge && !empty($banner['IMAGE'])): ?>
+                <img src="<?=htmlspecialcharsbx($banner['IMAGE'])?>" alt="" class="banner-slot-image">
             <?php endif; ?>
         </a>
     <?php endfor; ?>

@@ -98,8 +98,17 @@ class mycompany_banner extends CModule
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             try {
+                // Создаем таблицы
                 \MyCompany\Banner\BannerTable::getEntity()->createDbTable();
                 \MyCompany\Banner\BannerSetTable::getEntity()->createDbTable();
+
+                // Если таблица сетов пустая, создаем дефолтный сет
+                $setTable = \MyCompany\Banner\BannerSetTable::getList(['limit' => 1]);
+                if ($setTable->fetch()) {
+                    // Таблица не пуста
+                } else {
+                    \MyCompany\Banner\BannerSetTable::add(['ID' => 1, 'NAME' => 'Главная страница']);
+                }
             } catch (\Exception $e) {
                 // Игнорируем ошибку, если таблица уже существует
             }

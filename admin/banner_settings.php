@@ -1,12 +1,35 @@
 <?php
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 
+use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerSetTable;
 
 $module_id = "mycompany.banner";
 Loader::includeModule($module_id);
 $APPLICATION->SetTitle("Наборы баннеров");
+
+$request = Application::getInstance()->getContext()->getRequest();
+
+// Обработка AJAX запроса на создание набора
+if ($request->isPost() && $request->getPost('action') === 'create_set' && check_bitrix_sessid()) {
+    $APPLICATION->RestartBuffer();
+    $name = $request->getPost('name');
+    if (empty($name)) {
+        echo json_encode(['error' => 'Название не может быть пустым']);
+        die();
+    }
+    
+    $result = BannerSetTable::add(['NAME' => $name]);
+    
+    if ($result->isSuccess()) {
+        echo json_encode(['success' => true, 'id' => $result->getId()]);
+    } else {
+        echo json_encode(['error' => $result->getErrorMessages()]);
+    }
+    die();
+}
+
 
 // Получаем все сеты
 $sets = BannerSetTable::getList()->fetchAll();
@@ -25,16 +48,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div class="set-list-header">
     <h1>Наборы баннеров</h1>
-    <a href="/bitrix/admin/mycompany_banner_constructor.php?set_id=0&lang=<?=LANGUAGE_ID?>" class="adm-btn-save">Создать новый набор</a>
+    <button id="createNewSetBtn" class="adm-btn-save">Создать новый набор</button>
 </div>
 
 <div class="set-list" id="setList">
     <?php if (empty($sets)): ?>
-        <p>Пока не создано ни одного набора баннеров. <a href="/bitrix/admin/mycompany_banner_constructor.php?set_id=0&lang=<?=LANGUAGE_ID?>">Создать первый</a>?</p>
+        <p>Пока не создано ни одного набора баннеров.</p>
     <?php else: ?>
         <?php foreach ($sets as $set): ?>
         <div class="set-card"
-             onclick="location.href='/bitrix/admin/mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANGUAGE_ID?>'"
+             onclick="location.href='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANGUAGE_ID?>'"
         >
             <div>
                 <div class="set-card-name"><?=htmlspecialcharsbx($set['NAME'])?></div>
@@ -45,6 +68,39 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         <?php endforeach; ?>
     <?php endif; ?>
 </div>
+
+<script>
+    document.getElementById('createNewSetBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const name = prompt('Введите название нового набора:', 'Новый набор');
+        
+        if (name) {
+            const data = new FormData();
+            data.append('action', 'create_set');
+            data.append('name', name);
+            data.append('sessid', BX.bitrix_sessid());
+
+            fetch('', {
+                method: 'POST',
+                body: data
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    location.href = `mycompany_banner_constructor.php?set_id=${result.id}&lang=<?=LANGUAGE_ID?>`;
+                } else {
+                    alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при создании набора.');
+            });
+        }
+    });
+</script>
+
 
 <?php
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
