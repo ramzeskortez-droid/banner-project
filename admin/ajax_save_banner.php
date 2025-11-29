@@ -29,8 +29,7 @@ try {
             'LINK'         => trim($req->getPost('link')),
             'COLOR'        => trim($req->getPost('color')),
             'CATEGORY_ID'  => (int)$req->getPost('category_id'),
-            'IMAGE_TYPE'   => $req->getPost('image_type') ?: 'background',
-            'IMAGE_ALIGN'  => $req->getPost('image_align') ?: 'center',
+            'TEXT_ALIGN'   => $req->getPost('text_align') ?: 'center',
             'TEXT_COLOR'   => $req->getPost('text_color') ?: '#333333',
             'FONT_SIZE'    => $req->getPost('font_size') ?: 'normal',
         ];
@@ -44,27 +43,31 @@ try {
             }
         }
         
-        $exist = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
+        $existing = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
 
-        if (!empty($_FILES['image_file']['name'])) {
+        $imagePath = '';
+        if (!empty($_FILES['image_file']['tmp_name'])) {
             $fid = \CFile::SaveFile($_FILES['image_file'], 'mycompany.banner');
-            $data['IMAGE'] = $fid ? \CFile::GetPath($fid) : '';
-        } elseif ($url = trim($req->getPost('image_url'))) {
-            $data['IMAGE'] = $url;
-        } else {
-            // If no new image, keep the old one or set to empty if it's a new banner
-            $data['IMAGE'] = $exist['IMAGE'] ?? '';
+            if ($fid) $imagePath = \CFile::GetPath($fid);
+        } elseif (!empty($req->getPost('image_url'))) {
+            $imagePath = trim($req->getPost('image_url'));
         }
 
-        if($exist) {
-            $res = BannerTable::update($exist['ID'], $data);
+        if ($imagePath) {
+            $data['IMAGE'] = $imagePath;
+        } elseif (empty($existing['IMAGE'])) {
+            $data['IMAGE'] = '';
+        }
+
+        if($existing) {
+            $res = BannerTable::update($existing['ID'], $data);
         } else {
             $res = BannerTable::add($data);
         }
 
         if($res->isSuccess()) {
             $resp['success'] = true;
-            $id = $exist ? $exist['ID'] : $res->getId();
+            $id = $existing ? $existing['ID'] : $res->getId();
             $resp['data'] = BannerTable::getById($id)->fetch();
         } else {
             $resp['errors'] = $res->getErrorMessages();

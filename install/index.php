@@ -86,50 +86,10 @@ class mycompany_banner extends CModule
             try {
                 BannerTable::getEntity()->createDbTable();
                 BannerSetTable::getEntity()->createDbTable();
-                
-                if (BannerSetTable::getCount() == 0) {
-                    $this->smartFill();
-                }
+                BannerSetTable::add(['NAME' => 'Главная страница']);
             } catch (\Exception $e) {
                 // Log error
             }
-        }
-    }
-
-    public function smartFill()
-    {
-        $res = BannerSetTable::add(['NAME' => 'Главная страница']);
-        if (!$res->isSuccess()) {
-            return;
-        }
-        $setId = $res->getId();
-
-        if (!Loader::includeModule('iblock')) {
-            return;
-        }
-
-        $sectionsRes = \CIBlockSection::GetList(
-            ['ID' => 'ASC'],
-            ['ACTIVE' => 'Y', 'GLOBAL_ACTIVE' => 'Y', 'CNT_ACTIVE' => 'Y'],
-            false,
-            ['ID', 'NAME', 'SECTION_PAGE_URL', 'DESCRIPTION'],
-            ['nTopCount' => 8]
-        );
-
-        $slot = 1;
-        $colors = ['#ff4d4d', '#ff9f43', '#feca57', '#1dd1a1', '#5f27cd', '#54a0ff', '#ff6b81', '#576574'];
-        
-        while ($section = $sectionsRes->Fetch()) {
-            BannerTable::add([
-                'SET_ID' => $setId,
-                'SLOT_INDEX' => $slot,
-                'TITLE' => $section['NAME'],
-                'SUBTITLE' => TruncateText(strip_tags($section['DESCRIPTION']), 100),
-                'LINK' => $section['SECTION_PAGE_URL'],
-                'COLOR' => $colors[$slot - 1],
-                'CATEGORY_ID' => $section['ID'],
-            ]);
-            $slot++;
         }
     }
 
