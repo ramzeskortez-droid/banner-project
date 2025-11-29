@@ -1,33 +1,38 @@
-<?php if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die(); ?>
+<?php
+if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
+/** @var array $arParams */
+/** @var array $arResult */
+/** @global CMain $APPLICATION */
+/** @global CUser $USER */
+/** @global CDatabase $DB */
+/** @var CBitrixComponentTemplate $this */
+/** @var string $templateName */
+/** @var string $templateFile */
+/** @var string $templateFolder */
+/** @var string $componentPath */
+/** @var CBitrixComponent $component */
+$this->setFrameMode(true);
 
-<div class="my-banner-grid">
-    <?php for ($i = 1; $i <= 10; $i++): ?>
-        <?php if (isset($arResult['BANNERS'][$i]) && !empty($arResult['BANNERS'][$i])): 
-            $banner = $arResult['BANNERS'][$i];
-            $isLarge = $i <= 4;
-            $class = $isLarge ? 'my-banner-large' : 'my-banner-small';
-            $styles = "background-color: " . htmlspecialcharsbx($banner['COLOR']) . ";";
-            if ($isLarge && $banner['IMAGE_POSITION'] == 'right') {
-                $styles .= " flex-direction: row-reverse;";
-            }
-        ?>
-            <a href="<?=htmlspecialcharsbx($banner['LINK'])?>" class="my-banner-slot <?=$class?>" style="<?=$styles?>">
-                
-                <div class="my-banner-content">
-                    <?php if ($banner['TITLE']): ?>
-                        <div class="my-banner-title"><?=htmlspecialcharsbx($banner['TITLE'])?></div>
-                    <?php endif; ?>
-                    <?php if ($banner['SUBTITLE']): ?>
-                        <div class="my-banner-subtitle"><?=htmlspecialcharsbx($banner['SUBTITLE'])?></div>
-                    <?php endif; ?>
-                </div>
+if (empty($arResult['BANNERS'])) {
+    return;
+}
+?>
 
-                <?php if ($isLarge && $banner['IMAGE']): ?>
-                    <div class="my-banner-image">
-                        <img src="<?=htmlspecialcharsbx($banner['IMAGE'])?>" alt="<?=htmlspecialcharsbx($banner['TITLE'])?>">
-                    </div>
-                <?php endif; ?>
-            </a>
-        <?php endif; ?>
+<div class="banner-grid-container">
+    <?php for ($i = 1; $i <= 8; $i++):
+        $banner = $arResult['BANNERS'][$i] ?? null;
+        $isLarge = $i <= 4;
+        $class = $isLarge ? 'large' : 'small';
+        if (!$banner) continue; // Не выводим пустые слоты
+    ?>
+        <a href="<?=htmlspecialcharsbx($banner['LINK_URL'] ?? '#')?>" class="banner-slot banner-slot-<?=$class?>" style="background-color: <?=htmlspecialcharsbx($banner['THEME_COLOR'])?>; color: #fff;">
+            <div class="banner-slot-content">
+                <div class="banner-slot-title"><?=htmlspecialcharsbx($banner['TITLE'])?></div>
+                <div class="banner-slot-announcement"><?=htmlspecialcharsbx($banner['ANNOUNCEMENT'])?></div>
+            </div>
+            <?php if ($isLarge && !empty($banner['IMAGE_LINK'])): ?>
+                <img src="<?=htmlspecialcharsbx($banner['IMAGE_LINK'])?>" alt="" class="banner-slot-image">
+            <?php endif; ?>
+        </a>
     <?php endfor; ?>
 </div>

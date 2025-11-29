@@ -1,10 +1,11 @@
-.my-banner-grid {
+.banner-grid-container {
     display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
-    grid-template-columns: repeat(6, 1fr);
+    margin: 20px 0;
 }
 
-.my-banner-slot {
+.banner-slot {
     border-radius: 8px;
     padding: 20px;
     text-decoration: none;
@@ -12,72 +13,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    overflow: hidden;
     position: relative;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transition: transform 0.2s ease-in-out;
+    overflow: hidden;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.my-banner-slot:hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+.banner-slot:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
 }
 
-.my-banner-large {
-    grid-column: span 3;
-    min-height: 250px;
-}
+.banner-slot-large { grid-column: span 2; min-height: 250px; }
+.banner-slot-small { grid-column: span 1; min-height: 150px; }
 
-.my-banner-small {
-    grid-column: span 2;
-    min-height: 150px;
-    justify-content: center;
-    text-align: center;
-}
+.banner-slot-title { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+.banner-slot-announcement { font-size: 14px; opacity: 0.9; }
 
-.my-banner-content {
-    z-index: 1;
-}
-
-.my-banner-title {
-    font-size: 26px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.my-banner-subtitle {
-    font-size: 15px;
-    opacity: 0.9;
-}
-
-.my-banner-image {
-    max-width: 45%;
+.banner-slot-image {
+    max-width: 35%;
     max-height: 80%;
-    z-index: 0;
-}
-
-.my-banner-image img {
-    max-width: 100%;
-    max-height: 100%;
     object-fit: contain;
-}
-
-/* Responsive */
-@media (max-width: 992px) {
-    .my-banner-large {
-        grid-column: span 6;
-    }
-}
-@media (max-width: 768px) {
-    .my-banner-small {
-        grid-column: span 3;
-    }
-}
-@media (max-width: 576px) {
-    .my-banner-small {
-        grid-column: span 6;
-    }
-    .my-banner-title {
-        font-size: 20px;
-    }
 }

@@ -99,6 +99,7 @@ class mycompany_banner extends CModule
         if (Loader::includeModule($this->MODULE_ID)) {
             try {
                 \MyCompany\Banner\BannerTable::getEntity()->createDbTable();
+                \MyCompany\Banner\BannerSetTable::getEntity()->createDbTable();
             } catch (\Exception $e) {
                 // Игнорируем ошибку, если таблица уже существует
             }
@@ -111,6 +112,7 @@ class mycompany_banner extends CModule
             try {
                 $connection = Application::getInstance()->getConnection();
                 $connection->dropTable(\MyCompany\Banner\BannerTable::getTableName());
+                $connection->dropTable(\MyCompany\Banner\BannerSetTable::getTableName());
             } catch (\Exception $e) {
                  // Игнорируем ошибку, если таблицы не существует
             }

@@ -10,6 +10,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_befo
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerTable;
+use MyCompany\Banner\BannerSetTable;
 
 // --- Начало обработки ---
 
@@ -28,50 +29,83 @@ try {
         throw new \Exception('Ошибка сессии.');
     }
 
-    $post = $request->getPostList()->toArray();
-    $slotIndex = (int)$post['slot_index'];
-    if ($slotIndex <= 0 || $slotIndex > 10) {
-        throw new \Exception('Неверный индекс слота.');
-    }
+    $post = $request->getPostList();
+    $action = $post->get('action');
 
-    $data = [
-        'SET_ID' => 1, // Пока работаем с одним сетом
-        'SLOT_INDEX' => $slotIndex,
-        'TITLE' => $post['title'],
-        'SUBTITLE' => $post['subtitle'],
-        'LINK' => $post['link'],
-        'COLOR' => $post['color'],
-    ];
-
-    // Обработка загрузки файла
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $fileArray = $_FILES['image'];
-        $fileId = CFile::SaveFile($fileArray, $module_id);
-        if ($fileId) {
-            $data['IMAGE'] = CFile::GetPath($fileId);
-        } else {
-             $response['errors'][] = 'Не удалось сохранить файл.';
+    if ($action === 'create_set') {
+        $setName = trim($post->get('name'));
+        if (empty($setName)) {
+            throw new \Exception('Название набора не может быть пустым.');
         }
-    }
+        $result = BannerSetTable::add(['NAME' => $setName]);
+        if ($result->isSuccess()) {
+            $response['success'] = true;
+            $response['set_id'] = $result->getId();
+        } else {
+            $response['errors'] = $result->getErrorMessages();
+        }
 
-    // Ищем существующий баннер для этого слота
-    $existing = BannerTable::getList([
-        'filter' => ['=SET_ID' => 1, '=SLOT_INDEX' => $slotIndex]
-    ])->fetch();
+    } elseif ($action === 'save_slot') {
+        $postData = $post->toArray();
+        $setId = (int)$postData['set_id'];
+        $slotIndex = (int)$postData['slot_index'];
 
-    if ($existing) {
-        $result = BannerTable::update($existing['ID'], $data);
+        if ($setId <= 0) {
+            throw new \Exception('Неверный ID набора.');
+        }
+        if ($slotIndex <= 0 || $slotIndex > 8) {
+            throw new \Exception('Неверный индекс слота.');
+        }
+
+        $data = [
+            'SET_ID' => $setId,
+            'SLOT_INDEX' => $slotIndex,
+            'TITLE' => $postData['title'],
+            'ANNOUNCEMENT' => $postData['announcement'],
+            'THEME_COLOR' => $postData['theme_color'],
+            'IMAGE_LINK' => $postData['image_link'], // По умолчанию сохраняем URL
+        ];
+
+        // Обработка загрузки файла
+        $files = $request->getFileList()->toArray();
+        if (isset($files['image_file']) && $files['image_file']['error'] === UPLOAD_ERR_OK) {
+            $fileArray = $files['image_file'];
+            $fileId = CFile::SaveFile($fileArray, $module_id);
+            if ($fileId) {
+                $data['IMAGE_LINK'] = CFile::GetPath($fileId);
+            } else {
+                 $response['errors'][] = 'Не удалось сохранить файл.';
+            }
+        }
+
+        // Ищем существующий баннер для этого слота
+        $existing = BannerTable::getList([
+            'filter' => ['=SET_ID' => $setId, '=SLOT_INDEX' => $slotIndex]
+        ])->fetch();
+
+        if ($existing) {
+            $result = BannerTable::update($existing['ID'], $data);
+        } else {
+            $result = BannerTable::add($data);
+        }
+        
+        if ($result->isSuccess()) {
+            $id = $existing ? $existing['ID'] : $result->getId();
+            // Получаем финальные данные, включая ID
+            $savedData = BannerTable::getById($id)->fetch();
+            if ($savedData) {
+                // Убедимся, что все нужные поля есть в ответе
+                $response['success'] = true;
+                $response['data'] = $savedData;
+            } else {
+                throw new \Exception('Не удалось получить сохраненные данные.');
+            }
+        } else {
+            $response['errors'] = $result->getErrorMessages();
+        }
+
     } else {
-        $result = BannerTable::add($data);
-    }
-    
-    if ($result->isSuccess()) {
-        $id = $existing ? $existing['ID'] : $result->getId();
-        $savedData = BannerTable::getById($id)->fetch(); // Получаем финальные данные
-        $response['success'] = true;
-        $response['data'] = $savedData;
-    } else {
-        $response['errors'] = $result->getErrorMessages();
+        throw new \Exception('Неизвестное действие.');
     }
 
 } catch (\Exception $e) {
