@@ -128,7 +128,7 @@ class mycompany_banner extends CModule
             ['SORT' => 'ASC'], 
             ['IBLOCK_ID' => $iblockRes['ID'], 'ACTIVE' => 'Y', 'CNT_ACTIVE' => 'Y'], 
             false, 
-            ['ID', 'NAME', 'SECTION_PAGE_URL', 'DESCRIPTION'], 
+            ['ID', 'NAME', 'SECTION_PAGE_URL', 'DESCRIPTION', 'PICTURE'], 
             ['nTopCount' => 8]
         );
 
@@ -136,12 +136,15 @@ class mycompany_banner extends CModule
         while ($section = $sectionsRes->Fetch()) {
             BannerTable::add([
                 'SET_ID' => $setId, 
-                'SLOT_INDEX' => $slot++, 
+                'SLOT_INDEX' => $slot, 
                 'TITLE' => $section['NAME'], 
                 'LINK' => $section['SECTION_PAGE_URL'],
                 'SUBTITLE' => TruncateText(strip_tags($section['DESCRIPTION']), 100), 
                 'CATEGORY_ID' => $section['ID'],
+                'SORT' => $slot * 10,
+                'IMAGE' => $section['PICTURE'] ? \CFile::GetPath($section['PICTURE']) : '',
             ]);
+            $slot++;
         }
     }
 

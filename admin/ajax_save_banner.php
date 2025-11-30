@@ -30,7 +30,7 @@ try {
             'COLOR'              => trim($req->getPost('color')),
             'CATEGORY_ID'        => (int)$req->getPost('category_id'),
             'TEXT_ALIGN'         => $req->getPost('text_align') ?: 'center',
-            'TEXT_COLOR'         => $req->getPost('text_color') ?: '#ffffff',
+            'TEXT_COLOR'         => $req->getPost('text_color') ?: '#000000',
             'TITLE_FONT_SIZE'    => $req->getPost('title_font_size') ?: '20px',
             'SUBTITLE_FONT_SIZE' => $req->getPost('subtitle_font_size') ?: '14px',
             'FONT_FAMILY'        => $req->getPost('font_family') ?: 'Open Sans',
@@ -38,6 +38,7 @@ try {
             'FONT_STYLE'         => $req->getPost('font_style') ?: 'normal',
             'IMAGE_TYPE'         => $req->getPost('image_type') ?: 'background',
             'IMAGE_ALIGN'        => $req->getPost('image_align') ?: 'center',
+            'SORT'               => (int)$req->getPost('sort') ?: 500,
         ];
         
         $existing = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();

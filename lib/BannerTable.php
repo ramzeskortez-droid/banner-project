@@ -24,13 +24,14 @@ class BannerTable extends DataManager
             new IntegerField('CATEGORY_ID', ['nullable' => true]),
             new StringField('IMAGE_TYPE', ['default_value' => 'background']),
             new StringField('IMAGE_ALIGN', ['default_value' => 'center']),
-            new StringField('TEXT_COLOR', ['default_value' => '#ffffff']),
+            new StringField('TEXT_COLOR', ['default_value' => '#000000']),
             new StringField('TEXT_ALIGN', ['default_value' => 'center']),
             new StringField('TITLE_FONT_SIZE', ['default_value' => '20px']),
             new StringField('SUBTITLE_FONT_SIZE', ['default_value' => '14px']),
             new StringField('FONT_FAMILY', ['default_value' => 'Open Sans']),
             new StringField('FONT_WEIGHT', ['default_value' => 'normal']),
             new StringField('FONT_STYLE', ['default_value' => 'normal']),
+            new IntegerField('SORT', ['default_value' => 500]),
         ];
     }
 }
