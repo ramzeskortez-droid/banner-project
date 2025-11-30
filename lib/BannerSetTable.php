@@ -3,6 +3,7 @@ namespace MyCompany\Banner;
 use Bitrix\Main\ORM\Data\DataManager;
 use Bitrix\Main\ORM\Fields\IntegerField;
 use Bitrix\Main\ORM\Fields\StringField;
+use Bitrix\Main\ORM\Fields\BooleanField;
 
 class BannerSetTable extends DataManager
 {
@@ -11,6 +12,9 @@ class BannerSetTable extends DataManager
         return [
             new IntegerField('ID', ['primary' => true, 'autocomplete' => true]),
             new StringField('NAME', ['required' => true, 'title' => 'Название набора']),
+            new BooleanField('TEXT_BG_SHOW', ['values' => ['N', 'Y'], 'default_value' => 'N']),
+            new StringField('TEXT_BG_COLOR', ['default_value' => '#ffffff']),
+            new IntegerField('TEXT_BG_OPACITY', ['default_value' => 90]),
         ];
     }
 }

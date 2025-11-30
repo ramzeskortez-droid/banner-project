@@ -32,6 +32,9 @@ class BannerTable extends DataManager
             new StringField('FONT_WEIGHT', ['default_value' => 'normal']),
             new StringField('FONT_STYLE', ['default_value' => 'normal']),
             new IntegerField('SORT', ['default_value' => 500]),
+            new IntegerField('IMG_SCALE', ['default_value' => 100]),
+            new IntegerField('IMG_POS_X', ['default_value' => 50]),
+            new IntegerField('IMG_POS_Y', ['default_value' => 50]),
         ];
     }
 }

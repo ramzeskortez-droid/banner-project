@@ -143,6 +143,9 @@ class mycompany_banner extends CModule
                 'CATEGORY_ID' => $section['ID'],
                 'SORT' => $slot * 10,
                 'IMAGE' => $section['PICTURE'] ? \CFile::GetPath($section['PICTURE']) : '',
+                'IMG_SCALE' => 100,
+                'IMG_POS_X' => 50,
+                'IMG_POS_Y' => 50,
             ]);
             $slot++;
         }
