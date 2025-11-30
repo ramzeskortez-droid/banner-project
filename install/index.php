@@ -31,8 +31,8 @@ class mycompany_banner extends CModule
     public function DoInstall()
     {
         ModuleManager::registerModule($this->MODULE_ID);
-        $this->InstallDB();
         $this->InstallFiles();
+        $this->InstallDB();
         $this->RegisterEvents();
     }
 
@@ -46,33 +46,38 @@ class mycompany_banner extends CModule
     
     public function InstallFiles()
     {
-        CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/install/components", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/components", true, true);
-        CopyDirFiles($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/" . $this->MODULE_ID . "/admin", $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin", true, true);
-
         $adminFiles = [
-            'banner_settings.php'    => 'mycompany_banner_settings.php',
-            'banner_constructor.php' => 'mycompany_banner_constructor.php',
-            'ajax_save_banner.php'   => 'mycompany_banner_ajax_save_banner.php',
-            'tool_backup.php'        => 'mycompany_banner_backup.php'
+            'mycompany_banner_settings.php'    => 'admin/banner_settings.php',
+            'mycompany_banner_constructor.php' => 'admin/banner_constructor.php',
+            'mycompany_banner_ajax_save_banner.php'  => 'admin/ajax_save_banner.php'
         ];
+        
+        $moduleRootPath = dirname(__DIR__);
 
-        foreach ($adminFiles as $orig => $target) {
-            $pathOrig = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $orig;
-            $pathTarget = $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin/" . $target;
-            if (file_exists($pathOrig) && !file_exists($pathTarget)) {
-                rename($pathOrig, $pathTarget);
-            }
+        foreach ($adminFiles as $targetName => $sourceRelativePath) {
+            $sourceAbsolutePath = $moduleRootPath . '/' . $sourceRelativePath;
+            $sourceAbsolutePath = str_replace('\\', '/', $sourceAbsolutePath); // Normalize for require
+            $proxyContent = '<?php require("' . $sourceAbsolutePath . '");?>';
+            file_put_contents(Application::getDocumentRoot() . "/bitrix/admin/" . $targetName, $proxyContent);
         }
+
+        CopyDirFiles(
+            dirname(__FILE__) . "/components",
+            Application::getDocumentRoot() . "/bitrix/components",
+            true, true
+        );
         return true;
     }
 
     public function UnInstallFiles()
     {
+        $adminProxyFiles = ['mycompany_banner_settings.php', 'mycompany_banner_constructor.php', 'mycompany_banner_ajax_save_banner.php'];
+        foreach ($adminProxyFiles as $fileName) {
+            $file = Application::getDocumentRoot() . "/bitrix/admin/" . $fileName;
+            if(file_exists($file)) unlink($file);
+        }
+        
         DeleteDirFilesEx("/bitrix/components/mycompany/banner");
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_settings.php");
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_constructor.php");
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_ajax_save_banner.php");
-        DeleteDirFilesEx("/bitrix/admin/mycompany_banner_backup.php");
         return true;
     }
 
@@ -86,10 +91,57 @@ class mycompany_banner extends CModule
             try {
                 BannerTable::getEntity()->createDbTable();
                 BannerSetTable::getEntity()->createDbTable();
-                BannerSetTable::add(['NAME' => 'Главная страница']);
-            } catch (\Exception $e) {
-                // Log error
+                $this->createDemoData();
+            } catch (\Exception $e) { /* Log error */ }
+        }
+    }
+
+    private function createDemoData()
+    {
+        $setResult = BannerSetTable::add(['NAME' => 'Демо-набор']);
+        if (!$setResult->isSuccess()) return;
+        $setId = $setResult->getId();
+
+        if (!Loader::includeModule('iblock')) return;
+        
+        $iblockRes = null;
+        if (Loader::includeModule('catalog')) {
+             $catalogs = \Bitrix\Catalog\CatalogIblockTable::getList([
+                'select' => ['IBLOCK_ID'],
+                'filter' => []
+            ])->fetch();
+            if ($catalogs) {
+                $iblockRes = \CIBlock::GetList([], ['ID' => $catalogs['IBLOCK_ID'], 'ACTIVE' => 'Y'])->Fetch();
             }
+        }
+        
+        if (!$iblockRes) {
+            $iblockRes = \CIBlock::GetList([], ['ACTIVE' => 'Y', 'TYPE' => 'catalog'], false)->Fetch();
+             if (!$iblockRes) {
+                 $iblockRes = \CIBlock::GetList([], ['ACTIVE' => 'Y'], false)->Fetch();
+            }
+        }
+
+        if (!$iblockRes) return;
+
+        $sectionsRes = \CIBlockSection::GetList(
+            ['SORT' => 'ASC'], 
+            ['IBLOCK_ID' => $iblockRes['ID'], 'ACTIVE' => 'Y', 'CNT_ACTIVE' => 'Y'], 
+            false, 
+            ['ID', 'NAME', 'SECTION_PAGE_URL', 'DESCRIPTION'], 
+            ['nTopCount' => 8]
+        );
+
+        $slot = 1;
+        while ($section = $sectionsRes->Fetch()) {
+            BannerTable::add([
+                'SET_ID' => $setId, 
+                'SLOT_INDEX' => $slot++, 
+                'TITLE' => $section['NAME'], 
+                'LINK' => $section['SECTION_PAGE_URL'],
+                'SUBTITLE' => TruncateText(strip_tags($section['DESCRIPTION']), 100), 
+                'CATEGORY_ID' => $section['ID'],
+            ]);
         }
     }
 
@@ -102,11 +154,6 @@ class mycompany_banner extends CModule
         }
     }
 
-    public function RegisterEvents() {
-        EventManager::getInstance()->registerEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
-    }
-
-    public function UnRegisterEvents() {
-        EventManager::getInstance()->unRegisterEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu");
-    }
+    public function RegisterEvents() { EventManager::getInstance()->registerEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu"); }
+    public function UnRegisterEvents() { EventManager::getInstance()->unRegisterEventHandler("main", "OnBuildGlobalMenu", $this->MODULE_ID, "\\MyCompany\\Banner\\Event", "onBuildGlobalMenu"); }
 }

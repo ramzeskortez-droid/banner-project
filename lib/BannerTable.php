@@ -20,31 +20,17 @@ class BannerTable extends DataManager
             new TextField('SUBTITLE', ['nullable' => true]),
             new StringField('LINK', ['nullable' => true]),
             new StringField('COLOR', ['nullable' => true]),
-
-            new StringField('IMAGE', [
-                'nullable' => true,
-                'default_value' => ''
-            ]),
-            
+            new StringField('IMAGE', ['nullable' => true]),
             new IntegerField('CATEGORY_ID', ['nullable' => true]),
-            
-            new StringField('IMAGE_TYPE', [
-                'default_value' => 'background',
-            ]),
-            new StringField('IMAGE_ALIGN', [
-                'default_value' => 'center',
-            ]),
-
-            new StringField('TEXT_COLOR', [
-                'default_value' => '#333333'
-            ]),
-            new StringField('FONT_SIZE', [
-                'default_value' => 'normal'
-            ]),
-            // New field for v1.0.11
-            new StringField('TEXT_ALIGN', [
-                'default_value' => 'center'
-            ]),
+            new StringField('IMAGE_TYPE', ['default_value' => 'background']),
+            new StringField('IMAGE_ALIGN', ['default_value' => 'center']),
+            new StringField('TEXT_COLOR', ['default_value' => '#ffffff']),
+            new StringField('TEXT_ALIGN', ['default_value' => 'center']),
+            new StringField('TITLE_FONT_SIZE', ['default_value' => '20px']),
+            new StringField('SUBTITLE_FONT_SIZE', ['default_value' => '14px']),
+            new StringField('FONT_FAMILY', ['default_value' => 'Open Sans']),
+            new StringField('FONT_WEIGHT', ['default_value' => 'normal']),
+            new StringField('FONT_STYLE', ['default_value' => 'normal']),
         ];
     }
 }

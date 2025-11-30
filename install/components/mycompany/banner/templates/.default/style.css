@@ -4,50 +4,22 @@
     gap: 15px;
 }
 .banner-item {
-    border-radius: 10px;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    text-decoration: none;
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-    background-size: cover;
-    background-position: center;
+    border-radius: 10px; position: relative; overflow: hidden; display: flex; text-decoration: none;
+    transition: transform 0.2s; background-size: cover; background-position: center;
 }
-.banner-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
+.banner-item:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 
-.banner-item.large { grid-column: span 2; height: 280px; }
-.banner-item.small { grid-column: span 1; height: 180px; }
+/* GRID SIZES for Public Site */
+.banner-item.large { grid-column: span 2; height: 300px; }
+.banner-item.small { grid-column: span 1; height: 200px; }
+@media(max-width: 768px) { .banner-item.large, .banner-item.small { grid-column: span 4; height: 220px; } }
 
 .banner-slot-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    z-index: 2;
-    background: rgba(0,0,0,0.4);
+    display: flex; flex-direction: column; justify-content: center;
+    height: 100%; width: 100%; padding: 25px; box-sizing: border-box; z-index: 2;
+    /* УБРАЛИ background: rgba(...) ЧТОБЫ ЦВЕТА БЫЛИ ЧИСТЫМИ */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.1); 
 }
 
-/* Text Align */
-.banner-slot-content.text-left { align-items: flex-start; text-align: left; }
-.banner-slot-content.text-center { align-items: center; text-align: center; }
-.banner-slot-content.text-right { align-items: flex-end; text-align: right; }
-
-.b-title { font-weight: bold; text-transform: uppercase; }
-.b-sub { opacity: 0.9; margin-top: 5px; }
-
-/* Font sizes */
-.fs-small { font-size: 0.85em; }
-.fs-normal { font-size: 1em; }
-.fs-large { font-size: 1.2em; }
-.fs-large .b-title { font-size: 1.4em; }
-
-@media(max-width: 768px) {
-    .my-banner-grid { grid-template-columns: 1fr; }
-    .banner-item.large, .banner-item.small { grid-column: span 1; height: 220px; }
-}
+.b-title { font-weight: bold; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
+.b-sub { opacity: 0.95; line-height: 1.4; }

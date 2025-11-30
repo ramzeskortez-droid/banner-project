@@ -22,26 +22,23 @@ try {
 
     if ($req->getPost('action') === 'save_slot') {
         $data = [
-            'SET_ID'       => (int)$req->getPost('set_id'),
-            'SLOT_INDEX'   => (int)$req->getPost('slot_index'),
-            'TITLE'        => trim($req->getPost('title')),
-            'SUBTITLE'     => trim($req->getPost('subtitle')),
-            'LINK'         => trim($req->getPost('link')),
-            'COLOR'        => trim($req->getPost('color')),
-            'CATEGORY_ID'  => (int)$req->getPost('category_id'),
-            'TEXT_ALIGN'   => $req->getPost('text_align') ?: 'center',
-            'TEXT_COLOR'   => $req->getPost('text_color') ?: '#333333',
-            'FONT_SIZE'    => $req->getPost('font_size') ?: 'normal',
+            'SET_ID'             => (int)$req->getPost('set_id'),
+            'SLOT_INDEX'         => (int)$req->getPost('slot_index'),
+            'TITLE'              => trim($req->getPost('title')),
+            'SUBTITLE'           => trim($req->getPost('subtitle')),
+            'LINK'               => trim($req->getPost('link')),
+            'COLOR'              => trim($req->getPost('color')),
+            'CATEGORY_ID'        => (int)$req->getPost('category_id'),
+            'TEXT_ALIGN'         => $req->getPost('text_align') ?: 'center',
+            'TEXT_COLOR'         => $req->getPost('text_color') ?: '#ffffff',
+            'TITLE_FONT_SIZE'    => $req->getPost('title_font_size') ?: '20px',
+            'SUBTITLE_FONT_SIZE' => $req->getPost('subtitle_font_size') ?: '14px',
+            'FONT_FAMILY'        => $req->getPost('font_family') ?: 'Open Sans',
+            'FONT_WEIGHT'        => $req->getPost('font_weight') ?: 'normal',
+            'FONT_STYLE'         => $req->getPost('font_style') ?: 'normal',
+            'IMAGE_TYPE'         => $req->getPost('image_type') ?: 'background',
+            'IMAGE_ALIGN'        => $req->getPost('image_align') ?: 'center',
         ];
-
-        if ($req->getPost('category_mode') === 'Y' && $data['CATEGORY_ID'] > 0 && Loader::includeModule('iblock')) {
-            $res = CIBlockSection::GetByID($data['CATEGORY_ID']);
-            if ($sec = $res->GetNext()) {
-                $data['TITLE'] = $sec['NAME'];
-                $data['LINK'] = $sec['SECTION_PAGE_URL'];
-                $data['SUBTITLE'] = strip_tags($sec['DESCRIPTION']);
-            }
-        }
         
         $existing = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
 
@@ -55,7 +52,9 @@ try {
 
         if ($imagePath) {
             $data['IMAGE'] = $imagePath;
-        } elseif (empty($existing['IMAGE'])) {
+        } elseif (isset($existing['IMAGE']) && empty($data['IMAGE'])) {
+            // keep old image if no new one is provided
+        } else {
             $data['IMAGE'] = '';
         }
 
