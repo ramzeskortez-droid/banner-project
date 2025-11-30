@@ -15,13 +15,13 @@
 @media(max-width: 768px) { .banner-item.large, .banner-item.small { grid-column: span 4; height: 220px; } }
 
 .banner-slot-content {
-    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    height: 100%;
+    width: 100%;
     padding: 20px;
     box-sizing: border-box;
-    z-index: 2;
 }
 
 .b-text-wrapper {

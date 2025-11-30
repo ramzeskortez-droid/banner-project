@@ -38,8 +38,10 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .slot:hover { border-color: #999; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 5; }
     .slot[data-i="0"], .slot[data-i="1"], .slot[data-i="2"], .slot[data-i="3"] { grid-column: span 2; height: 300px; }
     .slot[data-i="4"], .slot[data-i="5"], .slot[data-i="6"], .slot[data-i="7"] { grid-column: span 1; height: 200px; }
+    
     .slot-content { height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 20px; box-sizing: border-box; }
     .b-text-wrapper { display: inline-block; padding: 10px 15px; border-radius: 6px; transition: background-color 0.3s; }
+    .b-title { font-weight: bold; margin-bottom: 5px; }
     .slot-placeholder { text-align: center; color: #bbb; width: 100%; }
 
     .text-left { align-items: flex-start; text-align: left; }
@@ -53,11 +55,11 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .popup-body { padding: 0; overflow-y: auto; flex: 1; }
     .popup-footer { padding: 15px 25px; background: #f7f7f7; text-align: right; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
 
-    .settings-group { padding: 0; border: 1px solid #bbdefb; overflow: hidden; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .group-title { background: #e3f2fd; color: #1565c0; padding: 12px 20px; font-weight: bold; border-bottom: 1px solid #90caf9; margin: 0; text-transform: uppercase; font-size: 12px; }
+    .settings-group { background: #f8f9fa; border: 1px solid #e9ecef; margin-bottom: 20px; border-radius: 6px; }
+    .group-title { color: #343a40; padding: 12px 20px; font-weight: 600; border-bottom: 1px solid #e9ecef; margin: 0; font-size: 14px; }
     .group-content { padding: 20px; }
-    .global-settings .form-row { padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
-    .global-settings .form-row .sep { width: 1px; height: 20px; background: #bbdefb; }
+    .global-settings .form-row { padding: 15px 20px; display: flex; align-items: center; gap: 15px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px;}
+    .global-settings .form-row .sep { width: 1px; height: 20px; background: #dee2e6; }
     .form-row { margin-bottom: 15px; }
     .form-row:last-child { margin-bottom: 0; }
     .form-row label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px; }
@@ -70,14 +72,11 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div class="construct-wrap">
     <div class="construct-header"><h2>Сетка баннеров</h2><a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a></div>
-    <div class="settings-group global-settings">
-        <div class="group-title">Настройки всего набора</div>
-        <div class="form-row">
+    <div class="global-settings"><div class="form-row">
             <label><input type="checkbox" id="globalBgShow"> Включить фон для текста</label>
             <div class="sep"></div><label>Цвет:</label> <input type="color" id="globalBgColor">
             <div class="sep"></div><label>Прозрачность (%):</label> <input type="range" id="globalBgOp" min="0" max="100">
-        </div>
-    </div>
+    </div></div>
     <div class="grid" id="grid"></div>
 </div>
 
@@ -96,8 +95,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         <div class="form-row"><label>Заполнить из категории</label><select id="catSelect" name="category_id" class="form-control"><option value="0">-- Не выбрано --</option><?php foreach($sections as $id => $s): ?><option value="<?=$id?>"><?=$s['title']?></option><?php endforeach; ?></select></div>
                         <div class="form-row"><label>Заголовок</label><input type="text" name="title" id="inpTitle" class="form-control"></div>
                         <div class="form-row"><label>Анонс</label><textarea name="subtitle" id="inpSubtitle" class="form-control" rows="2"></textarea></div>
-                        <div class="form-row"><label>Ссылка</label><input type="text" name="link" id="inpLink" class="form-control">
-                        <div class="form-row"><label>Сортировка</label><input type="number" name="sort" id="inpSort" class="form-control"></div>
+                        <div class="form-row"><label>Ссылка</label><input type="text" name="link" id="inpLink" class="form-control"></div>
+                         <div class="form-row"><label>Сортировка</label><input type="number" name="sort" id="inpSort" class="form-control"></div>
                     </div>
                 </div>
             </div>
@@ -124,9 +123,9 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 <div id="adjusterOverlay" class="overlay"><div class="popup" style="width:800px;">
     <div class="popup-header"><h3>Настройка отображения <small>(Тяните мышкой для сдвига)</small></h3></div>
     <div class="popup-body">
-        <div class="adjust-preview" id="adjPreview"><div id="adjustTextOverlay"></div></div>
+        <div class="adjust-preview" id="adjPreview"><div class="adjust-text-overlay" id="adjustTextOverlay"></div></div>
         <div class="adjust-controls group-content">
-            <div class="form-row"><label>Масштаб: <span id="scaleVal">100</span>%</label><input type="range" id="adjScale" min="10" max="250" value="100" class="form-control">
+            <div class="form-row"><label>Масштаб: <span id="scaleVal">100</span>%</label><input type="range" id="adjScale" min="10" max="250" value="100" class="form-control"></div>
             <input type="hidden" id="adjPosX"><input type="hidden" id="adjPosY">
         </div>
     </div>
@@ -144,15 +143,24 @@ function render() {
     const list = Object.values(banners).sort((a,b) => (parseInt(a.SORT)||500) - (parseInt(b.SORT)||500));
     for(let i=0; i < 8; i++) {
         const b = list[i], el = document.createElement('div');
-        el.className = 'slot'; el.dataset.i = i;
+        el.className = 'slot'; el.dataset.slotIndex = b ? b.SLOT_INDEX : -1; el.dataset.visualIndex = i;
         if (b) {
             el.style.backgroundColor = b.COLOR || '#fff';
             if(b.IMAGE) { el.style.backgroundImage = `url(${b.IMAGE})`; el.style.backgroundSize = `${b.IMG_SCALE || 100}%`; el.style.backgroundPosition = `${b.IMG_POS_X || 50}% ${b.IMG_POS_Y || 50}%`; }
-            const content = document.createElement('div'), wrapper = document.createElement('div');
+            
+            const content = document.createElement('div');
             content.className = `slot-content text-${b.TEXT_ALIGN || 'center'}`;
+            content.style.color = b.TEXT_COLOR || '#000';
+            
+            const wrapper = document.createElement('div');
             wrapper.className = 'b-text-wrapper';
             if (globalSettings.TEXT_BG_SHOW === 'Y') { wrapper.style.backgroundColor = hexToRgb(globalSettings.TEXT_BG_COLOR, globalSettings.TEXT_BG_OPACITY); }
-            if(b.TITLE) wrapper.innerHTML = `<div style="color:${b.TEXT_COLOR||'#000'}; font-size: ${b.TITLE_FONT_SIZE || '18px'}">${b.TITLE}</div>`;
+            
+            let innerHTML = '';
+            if (b.TITLE) innerHTML += `<div class="b-title" style="font-size: ${b.TITLE_FONT_SIZE || '18px'}">${b.TITLE}</div>`;
+            if (b.SUBTITLE) innerHTML += `<div class="b-sub" style="font-size: ${b.SUBTITLE_FONT_SIZE || '14px'}">${b.SUBTITLE}</div>`;
+            wrapper.innerHTML = innerHTML;
+
             content.appendChild(wrapper);
             el.appendChild(content);
             el.onclick = () => openPopup(b.SLOT_INDEX);
@@ -170,12 +178,21 @@ function closePopup() { document.getElementById('popup').style.display = 'none';
 
 const adjuster = { preview: document.getElementById('adjPreview'), scale: document.getElementById('adjScale'), posX: document.getElementById('adjPosX'), posY: document.getElementById('adjPosY'), isDragging: false, startX: 0, startY: 0, initPosX: 50, initPosY: 50 };
 function openAdjuster() {
+    const slotIndex = document.getElementById('slotIndex').value;
+    const visualEl = document.querySelector(`.slot[data-slot-index='${slotIndex}']`);
+    if (!visualEl) { console.error('Could not find visual element for slot', slotIndex); return; }
+
     let imgUrl = document.getElementById('inpImgUrl').value; const file = document.getElementById('inpFile').files[0];
     if(file) imgUrl = URL.createObjectURL(file);
     if(!imgUrl) { alert('Сначала выберите изображение'); return; }
+
     adjuster.preview.style.backgroundImage = `url(${imgUrl})`;
-    const textPreview = document.createElement('div'); textPreview.className = 'slot-content text-center'; textPreview.innerHTML = `<div class="b-text-wrapper" style="background-color: ${hexToRgb(globalSettings.TEXT_BG_COLOR, globalSettings.TEXT_BG_OPACITY)}"><div style="color:#fff; font-weight:bold;">${document.getElementById('inpTitle').value}</div></div>`;
-    document.getElementById('adjustTextOverlay').innerHTML = ''; document.getElementById('adjustTextOverlay').appendChild(textPreview);
+    const contentToClone = visualEl.querySelector('.slot-content');
+    if (contentToClone) {
+        document.getElementById('adjustTextOverlay').innerHTML = '';
+        document.getElementById('adjustTextOverlay').appendChild(contentToClone.cloneNode(true));
+    }
+
     adjuster.scale.value = document.getElementById('inpScale').value || 100; adjuster.posX.value = document.getElementById('inpPosX').value || 50; adjuster.posY.value = document.getElementById('inpPosY').value || 50;
     updateAdjusterPreview(); document.getElementById('adjusterOverlay').style.display = 'flex';
 }
@@ -188,7 +205,7 @@ window.onmousemove = function(e) { if(!adjuster.isDragging) return; let newX = a
 window.onmouseup = function() { adjuster.isDragging = false; adjuster.preview.style.cursor = 'grab'; };
 
 function saveGlobalSettings() { const data = new FormData(); data.append('action', 'save_set_settings'); data.append('set_id', globalSettings.ID); data.append('sessid', '<?=bitrix_sessid()?>'); data.append('show', document.getElementById('globalBgShow').checked ? 'Y' : 'N'); data.append('color', document.getElementById('globalBgColor').value); data.append('opacity', document.getElementById('globalBgOp').value); fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:data}).then(res => res.json()).then(d => { if(d.success) { globalSettings = d.data; render(); } else { alert('Ошибка сохранения настроек'); } }); }
-function initGlobalSettings() { document.getElementById('globalBgShow').checked = globalSettings.TEXT_BG_SHOW === 'Y'; document.getElementById('globalBgColor').value = globalSettings.TEXT_BG_COLOR; document.getElementById('globalBgOp').value = globalSettings.TEXT_BG_OPACITY; ['globalBgShow', 'globalBgColor', 'globalBgOp'].forEach(id => document.getElementById(id).addEventListener('change', saveGlobalSettings)); }
+function initGlobalSettings() { if(!globalSettings) return; document.getElementById('globalBgShow').checked = globalSettings.TEXT_BG_SHOW === 'Y'; document.getElementById('globalBgColor').value = globalSettings.TEXT_BG_COLOR; document.getElementById('globalBgOp').value = globalSettings.TEXT_BG_OPACITY; ['globalBgShow', 'globalBgColor', 'globalBgOp'].forEach(id => document.getElementById(id).addEventListener('change', saveGlobalSettings)); }
 
 document.getElementById('catSelect').addEventListener('change', function() { const sec = sections[this.value]; if(sec) { document.getElementById('inpTitle').value = sec.title; document.getElementById('inpSubtitle').value = sec.subtitle; document.getElementById('inpLink').value = sec.link; if(sec.image) document.getElementById('inpImgUrl').value = sec.image; } });
 document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); closePopup(); } else { alert(data.errors.join('\n')); } };
