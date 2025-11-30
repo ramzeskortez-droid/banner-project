@@ -15,11 +15,25 @@
 @media(max-width: 768px) { .banner-item.large, .banner-item.small { grid-column: span 4; height: 220px; } }
 
 .banner-slot-content {
-    display: flex; flex-direction: column; justify-content: center;
-    height: 100%; width: 100%; padding: 25px; box-sizing: border-box; z-index: 2;
-    /* УБРАЛИ background: rgba(...) ЧТОБЫ ЦВЕТА БЫЛИ ЧИСТЫМИ */
-    text-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 2;
 }
+
+.b-text-wrapper {
+    display: inline-block;
+    padding: 15px 20px;
+    border-radius: 8px;
+    transition: background 0.3s;
+}
+
+.text-left { align-items: flex-start; text-align: left; }
+.text-center { align-items: center; text-align: center; }
+.text-right { align-items: flex-end; text-align: right; }
 
 .b-title { font-weight: bold; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
 .b-sub { opacity: 0.95; line-height: 1.4; }
