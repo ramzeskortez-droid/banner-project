@@ -301,7 +301,30 @@ function openAdjuster() {
 }
 function closeAdjuster() { document.getElementById('adjusterOverlay').style.display = 'none'; }
 function updateAdjusterPreview() { adjuster.preview.style.backgroundSize = `${adjuster.scale.value}%`; adjuster.preview.style.backgroundPosition = `${adjuster.posX.value}% ${adjuster.posY.value}%`; document.getElementById('scaleVal').innerText = adjuster.scale.value; }
-function applyAdjustments() { document.getElementById('inpScale').value = adjuster.scale.value; document.getElementById('inpPosX').value = adjuster.posX.value; document.getElementById('inpPosY').value = adjuster.posY.value; closeAdjuster(); }
+function applyAdjustments() {
+    const slotIndex = document.getElementById('slotIndex').value;
+    
+    // 1. Записываем значения в скрытые поля формы (для отправки на сервер)
+    document.getElementById('inpScale').value = adjuster.scale.value;
+    document.getElementById('inpPosX').value = adjuster.posX.value;
+    document.getElementById('inpPosY').value = adjuster.posY.value;
+    
+    // 2. МГНОВЕННО обновляем объект в памяти (чтобы render показал изменения)
+    if (!banners[slotIndex]) banners[slotIndex] = { SLOT_INDEX: slotIndex };
+    
+    banners[slotIndex].IMG_SCALE = adjuster.scale.value;
+    banners[slotIndex].IMG_POS_X = adjuster.posX.value;
+    banners[slotIndex].IMG_POS_Y = adjuster.posY.value;
+    
+    // Если мы загрузили файл, мы не можем обновить URL в базе прямо сейчас,
+    // но мы можем обновить CSS для текущего просмотра
+    
+    // 3. Перерисовываем сетку
+    render();
+    
+    // 4. Закрываем окно
+    closeAdjuster();
+}
 adjuster.scale.addEventListener('input', updateAdjusterPreview);
 adjuster.preview.onmousedown = function(e) { e.preventDefault(); adjuster.isDragging = true; adjuster.startX = e.clientX; adjuster.startY = e.clientY; adjuster.initPosX = parseFloat(adjuster.posX.value); adjuster.initPosY = parseFloat(adjuster.posY.value); adjuster.preview.style.cursor = 'grabbing'; };
 window.onmousemove = function(e) { if(!adjuster.isDragging) return; let newX = adjuster.initPosX - ((e.clientX - adjuster.startX) * 0.2); let newY = adjuster.initPosY - ((e.clientY - adjuster.startY) * 0.2); adjuster.posX.value = Math.max(0, Math.min(100, newX)); adjuster.posY.value = Math.max(0, Math.min(100, newY)); updateAdjusterPreview(); };
