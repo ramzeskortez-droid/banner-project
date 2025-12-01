@@ -83,12 +83,12 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
     /* Фикс для многострочного поля Анонс */
     textarea.form-control {
-        height: auto !important;      /* Высота зависит от контента */
-        line-height: 1.5 !important;  /* Нормальный межстрочный интервал */
-        padding: 10px !important;     /* Отступы внутри */
-        resize: vertical;             /* Разрешить растягивать вниз */
-        min-height: 80px;             /* Минимальная высота */
-    }
+    min-height: 80px !important;  /* Даем базу, но не фиксируем */
+    height: auto;                 /* Разрешаем рост */
+    line-height: 1.5 !important;
+    padding: 10px !important;
+    resize: vertical !important;  /* Разрешаем растягивание */
+}
     
     .adjust-preview { height: 350px; width: 100%; background-size: 100%; background-position: 50% 50%; border-bottom: 1px solid #ddd; position: relative; background-color: #eee; cursor: grab; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
     .adjust-text-overlay { pointer-events: none; }
@@ -100,17 +100,17 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     <div class="global-settings">
         <div class="form-row flex-center" style="padding: 15px 20px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
             
-            <label><input type="checkbox" id="globalBgShow" onchange="syncSetSettings()"> Фон под текстом</label>
-            <input type="color" id="globalBgColor" onchange="syncSetSettings()" value="#ffffff">
+            <label><input type="checkbox" id="globalBgShow" onchange="saveGlobalSettings()"> Фон под текстом</label>
+            <input type="color" id="globalBgColor" onchange="saveGlobalSettings()" value="#ffffff">
             <label>Прозрачность:</label>
-            <input type="range" id="globalBgOp" min="0" max="100" value="90" oninput="syncOpacity(this.value)" onchange="syncSetSettings()">
-            <input type="number" id="globalBgOpNum" min="0" max="100" value="90" class="form-control" style="width: 60px; height: 30px;" oninput="syncOpacity(this.value)" onchange="syncSetSettings()">
+            <input type="range" id="globalBgOp" min="0" max="100" value="90" oninput="syncOpacity(this.value)" onchange="saveGlobalSettings()">
+            <input type="number" id="globalBgOpNum" min="0" max="100" value="90" class="form-control" style="width: 60px; height: 30px;" oninput="syncOpacity(this.value)" onchange="saveGlobalSettings()">
             <span>%</span>
 
             <div class="sep" style="margin:0 20px; border-left:1px solid #ddd; height:20px;"></div>
             
-            <label><input type="checkbox" id="globalTextColorShow" onchange="syncSetSettings()"> Единый цвет текста</label>
-            <input type="color" id="globalTextColor" onchange="syncSetSettings()" style="margin-left:5px;" value="#000000">
+            <label><input type="checkbox" id="globalTextColorShow" onchange="saveGlobalSettings()"> Единый цвет текста</label>
+            <input type="color" id="globalTextColor" onchange="saveGlobalSettings()" style="margin-left:5px;" value="#000000">
         </div>
     </div>
     <div class="grid" id="grid"></div>
@@ -202,31 +202,34 @@ function syncOpacity(val) {
 /**
  * Saves global settings via AJAX. Called onchange/onblur.
  */
-function syncSetSettings() {
+function saveGlobalSettings() {
     const data = new FormData();
     data.append('action', 'save_set_settings');
-    data.append('set_id', globalSettings.ID);
+    data.append('set_id', globalSettings.ID || 1);
     data.append('sessid', '<?=bitrix_sessid()?>');
     
-    data.append('text_bg_show', document.getElementById('globalBgShow').checked ? 'Y' : 'N');
-    data.append('text_bg_color', document.getElementById('globalBgColor').value);
-    data.append('text_bg_opacity', document.getElementById('globalBgOp').value);
+    // Фон
+    data.append('show', document.getElementById('globalBgShow').checked ? 'Y' : 'N');
+    data.append('color', document.getElementById('globalBgColor').value);
+    data.append('opacity', document.getElementById('globalBgOp').value);
+    
+    // Цвет текста (ПРОВЕРЬ ID ЭЛЕМЕНТОВ В HTML!)
+    const globalTextCheck = document.getElementById('globalTextColorShow');
+    const globalTextCol = document.getElementById('globalTextColor');
+    
+    if(globalTextCheck && globalTextCol) {
+        data.append('use_global_text_color', globalTextCheck.checked ? 'Y' : 'N');
+        data.append('global_text_color', globalTextCol.value);
+    }
 
-    data.append('use_global_text_color', document.getElementById('globalTextColorShow').checked ? 'Y' : 'N');
-    data.append('global_text_color', document.getElementById('globalTextColor').value);
-
-    fetch('ajax_save_banner.php', {method:'POST', body:data})
+    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:data})
         .then(res => res.json())
         .then(d => {
             if(d.success) {
-                globalSettings.TEXT_BG_SHOW = document.getElementById('globalBgShow').checked ? 'Y' : 'N';
-                globalSettings.TEXT_BG_COLOR = document.getElementById('globalBgColor').value;
-                globalSettings.TEXT_BG_OPACITY = document.getElementById('globalBgOp').value;
-                globalSettings.USE_GLOBAL_TEXT_COLOR = document.getElementById('globalTextColorShow').checked ? 'Y' : 'N';
-                globalSettings.GLOBAL_TEXT_COLOR = document.getElementById('globalTextColor').value;
-                render(); 
+                globalSettings = d.data;
+                render();
             } else {
-                alert('Ошибка сохранения настроек:\n' + (d.errors ? d.errors.join('\n') : ''));
+                alert('Ошибка: ' + d.errors.join('\n'));
             }
         });
 }

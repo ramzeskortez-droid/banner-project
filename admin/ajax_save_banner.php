@@ -23,29 +23,35 @@ try {
     $action = $req->getPost('action');
     $setId = (int)$req->getPost('set_id');
 
-    if ($req->getPost('action') === 'save_set_settings') {
-    $setId = (int)$req->getPost('set_id');
-    $data = [
-        'TEXT_BG_SHOW' => $req->getPost('text_bg_show') === 'Y' ? 'Y' : 'N',
-        'TEXT_BG_COLOR' => $req->getPost('text_bg_color'),
-        'TEXT_BG_OPACITY' => (int)$req->getPost('text_bg_opacity'),
-        'USE_GLOBAL_TEXT_COLOR' => $req->getPost('use_global_text_color') === 'Y' ? 'Y' : 'N',
-        'GLOBAL_TEXT_COLOR' => $req->getPost('global_text_color'),
-    ];
-    
-    $exist = \MyCompany\Banner\BannerSetTable::getById($setId)->fetch();
-    if ($exist) {
-        $res = \MyCompany\Banner\BannerSetTable::update($setId, $data);
-    } else {
-        $res = \MyCompany\Banner\BannerSetTable::add($data + ['NAME' => 'New Set']);
-    }
+    if ($action === 'save_set_settings') {
+        $setId = (int)$req->getPost('set_id');
+        if ($setId <= 0) $setId = 1; // Фоллбэк
 
-    if($res->isSuccess()) {
-        $resp['success'] = true;
-    } else {
-        $resp['errors'] = $res->getErrorMessages();
+        $data = [
+            'TEXT_BG_SHOW' => $req->getPost('show') === 'Y' ? 'Y' : 'N',
+            'TEXT_BG_COLOR' => trim($req->getPost('color')),
+            'TEXT_BG_OPACITY' => (int)$req->getPost('opacity'),
+            'USE_GLOBAL_TEXT_COLOR' => $req->getPost('use_global_text_color') === 'Y' ? 'Y' : 'N',
+            'GLOBAL_TEXT_COLOR' => trim($req->getPost('global_text_color')),
+        ];
+
+        $exist = BannerSetTable::getById($setId)->fetch();
+        if ($exist) {
+            $res = BannerSetTable::update($setId, $data);
+        } else {
+            // Если записи нет, создаем её принудительно с ID
+            $data['ID'] = $setId;
+            $data['NAME'] = 'Default Set';
+            $res = BannerSetTable::add($data);
+        }
+
+        if ($res->isSuccess()) {
+            $resp['success'] = true;
+            $resp['data'] = BannerSetTable::getById($setId)->fetch();
+        } else {
+            $resp['errors'] = $res->getErrorMessages();
+        }
     }
-}
     elseif ($action === 'save_slot') {
         $data = [
             'SET_ID'             => $setId,
