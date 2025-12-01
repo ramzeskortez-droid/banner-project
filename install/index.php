@@ -98,7 +98,7 @@ class mycompany_banner extends CModule
 
     private function createDemoData()
     {
-        $setResult = BannerSetTable::add(['NAME' => 'Демо-набор']);
+        $setResult = BannerSetTable::add(['NAME' => 'Демо-набор', 'USE_GLOBAL_TEXT_COLOR' => 'N']);
         if (!$setResult->isSuccess()) return;
         $setId = $setResult->getId();
 

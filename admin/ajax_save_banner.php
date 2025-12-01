@@ -23,24 +23,29 @@ try {
     $action = $req->getPost('action');
     $setId = (int)$req->getPost('set_id');
 
-    if ($action === 'save_set_settings') {
-        if ($setId > 0) {
-            $data = [
-                'TEXT_BG_SHOW' => $req->getPost('show') === 'Y' ? 'Y' : 'N',
-                'TEXT_BG_COLOR' => trim($req->getPost('color')),
-                'TEXT_BG_OPACITY' => (int)$req->getPost('opacity'),
-            ];
-            $res = BannerSetTable::update($setId, $data);
-            if ($res->isSuccess()) {
-                $resp['success'] = true;
-                $resp['data'] = BannerSetTable::getById($setId)->fetch();
-            } else {
-                $resp['errors'] = $res->getErrorMessages();
-            }
-        } else {
-            $resp['errors'][] = 'Set ID не указан';
-        }
+    if ($req->getPost('action') === 'save_set_settings') {
+    $setId = (int)$req->getPost('set_id');
+    $data = [
+        'TEXT_BG_SHOW' => $req->getPost('text_bg_show') === 'Y' ? 'Y' : 'N',
+        'TEXT_BG_COLOR' => $req->getPost('text_bg_color'),
+        'TEXT_BG_OPACITY' => (int)$req->getPost('text_bg_opacity'),
+        'USE_GLOBAL_TEXT_COLOR' => $req->getPost('use_global_text_color') === 'Y' ? 'Y' : 'N',
+        'GLOBAL_TEXT_COLOR' => $req->getPost('global_text_color'),
+    ];
+    
+    $exist = \MyCompany\Banner\BannerSetTable::getById($setId)->fetch();
+    if ($exist) {
+        $res = \MyCompany\Banner\BannerSetTable::update($setId, $data);
+    } else {
+        $res = \MyCompany\Banner\BannerSetTable::add($data + ['NAME' => 'New Set']);
     }
+
+    if($res->isSuccess()) {
+        $resp['success'] = true;
+    } else {
+        $resp['errors'] = $res->getErrorMessages();
+    }
+}
     elseif ($action === 'save_slot') {
         $data = [
             'SET_ID'             => $setId,

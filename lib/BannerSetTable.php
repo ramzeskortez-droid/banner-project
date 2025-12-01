@@ -15,6 +15,8 @@ class BannerSetTable extends DataManager
             new BooleanField('TEXT_BG_SHOW', ['values' => ['N', 'Y'], 'default_value' => 'N']),
             new StringField('TEXT_BG_COLOR', ['default_value' => '#ffffff']),
             new IntegerField('TEXT_BG_OPACITY', ['default_value' => 90]),
+            new BooleanField('USE_GLOBAL_TEXT_COLOR', ['values' => ['N', 'Y'], 'default_value' => 'N']),
+            new StringField('GLOBAL_TEXT_COLOR', ['default_value' => '#000000']),
         ];
     }
 }

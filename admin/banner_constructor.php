@@ -33,16 +33,32 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 <style>
     .construct-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .construct-wrap { max-width: 1400px; margin: 0 auto; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-    .slot { background: #fff; border: 2px dashed #ccc; border-radius: 8px; position: relative; overflow: hidden; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; justify-content: center; background-size: cover; background-position: center; }
-    .slot:hover { border-color: #999; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 5; }
-    .slot[data-i="0"], .slot[data-i="1"], .slot[data-i="2"], .slot[data-i="3"] { grid-column: span 2; height: 300px; }
-    .slot[data-i="4"], .slot[data-i="5"], .slot[data-i="6"], .slot[data-i="7"] { grid-column: span 1; height: 200px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+
+    .slot {
+        position: relative;
+        background-color: #f0f0f0;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .slot:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        z-index: 50;
+        border-color: #999;
+    }
+
+    .slot[data-i="1"], .slot[data-i="2"], .slot[data-i="3"], .slot[data-i="4"] { grid-column: span 2; height: 300px; }
+    .slot[data-i="5"], .slot[data-i="6"], .slot[data-i="7"], .slot[data-i="8"] { grid-column: span 1; height: 200px; }
     
     .slot-content { height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 20px; box-sizing: border-box; }
-    .b-text-wrapper { display: inline-block; padding: 10px 15px; border-radius: 6px; transition: background-color 0.3s; }
+    .b-text-wrapper { display: inline-block; padding: 10px 15px; border-radius: 6px; transition: background-color 0.1s linear; }
     .b-title { font-weight: bold; margin-bottom: 5px; }
-    .slot-placeholder { text-align: center; color: #bbb; width: 100%; }
+    .slot-placeholder { text-align: center; color: #bbb; width: 100%; display:flex; align-items:center; justify-content:center; height:100%; flex-direction:column; }
 
     .text-left { align-items: flex-start; text-align: left; }
     .text-center { align-items: center; text-align: center; }
@@ -55,15 +71,24 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .popup-body { padding: 0; overflow-y: auto; flex: 1; }
     .popup-footer { padding: 15px 25px; background: #f7f7f7; text-align: right; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
 
-    .settings-group { background: #f8f9fa; border: 1px solid #e9ecef; margin-bottom: 20px; border-radius: 6px; }
-    .group-title { color: #343a40; padding: 12px 20px; font-weight: 600; border-bottom: 1px solid #e9ecef; margin: 0; font-size: 14px; }
+    .settings-group { padding: 0; border: 1px solid #bbdefb; overflow: hidden; margin-bottom: 20px; border-radius: 6px; background: #fff; }
+    .group-title { background: #e3f2fd; color: #1565c0; padding: 15px 20px; font-weight: bold; border-bottom: 1px solid #90caf9; margin: 0 0 15px 0; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
     .group-content { padding: 20px; }
     .global-settings .form-row { padding: 15px 20px; display: flex; align-items: center; gap: 15px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px;}
     .global-settings .form-row .sep { width: 1px; height: 20px; background: #dee2e6; }
-    .form-row { margin-bottom: 15px; }
+    .form-row { padding: 0 20px; margin-bottom: 15px; }
     .form-row:last-child { margin-bottom: 0; }
     .form-row label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px; }
     .form-control { width: 100%; height: 40px; line-height: 38px; padding: 0 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; background: #fff; }
+
+    /* Фикс для многострочного поля Анонс */
+    textarea.form-control {
+        height: auto !important;      /* Высота зависит от контента */
+        line-height: 1.5 !important;  /* Нормальный межстрочный интервал */
+        padding: 10px !important;     /* Отступы внутри */
+        resize: vertical;             /* Разрешить растягивать вниз */
+        min-height: 80px;             /* Минимальная высота */
+    }
     
     .adjust-preview { height: 350px; width: 100%; background-size: 100%; background-position: 50% 50%; border-bottom: 1px solid #ddd; position: relative; background-color: #eee; cursor: grab; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
     .adjust-text-overlay { pointer-events: none; }
@@ -72,11 +97,22 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div class="construct-wrap">
     <div class="construct-header"><h2>Сетка баннеров</h2><a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a></div>
-    <div class="global-settings"><div class="form-row">
-            <label><input type="checkbox" id="globalBgShow"> Включить фон для текста</label>
-            <div class="sep"></div><label>Цвет:</label> <input type="color" id="globalBgColor">
-            <div class="sep"></div><label>Прозрачность (%):</label> <input type="range" id="globalBgOp" min="0" max="100">
-    </div></div>
+    <div class="global-settings">
+        <div class="form-row flex-center" style="padding: 15px 20px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            
+            <label><input type="checkbox" id="globalBgShow" onchange="syncSetSettings()"> Фон под текстом</label>
+            <input type="color" id="globalBgColor" onchange="syncSetSettings()" value="#ffffff">
+            <label>Прозрачность:</label>
+            <input type="range" id="globalBgOp" min="0" max="100" value="90" oninput="syncOpacity(this.value)" onchange="syncSetSettings()">
+            <input type="number" id="globalBgOpNum" min="0" max="100" value="90" class="form-control" style="width: 60px; height: 30px;" oninput="syncOpacity(this.value)" onchange="syncSetSettings()">
+            <span>%</span>
+
+            <div class="sep" style="margin:0 20px; border-left:1px solid #ddd; height:20px;"></div>
+            
+            <label><input type="checkbox" id="globalTextColorShow" onchange="syncSetSettings()"> Единый цвет текста</label>
+            <input type="color" id="globalTextColor" onchange="syncSetSettings()" style="margin-left:5px;" value="#000000">
+        </div>
+    </div>
     <div class="grid" id="grid"></div>
 </div>
 
@@ -111,6 +147,11 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                  <div class="settings-group"><div class="group-title">Типографика</div>
                     <div class="group-content">
                          <div class="form-row"><label>Выравнивание текста</label><select name="text_align" id="inpTextAlign" class="form-control"><option value="left">Слева</option><option value="center" selected>По центру</option><option value="right">Справа</option></select></div>
+                         <div class="form-row">
+                            <label for="inpTextColor">Цвет текста</label>
+                            <input type="color" name="text_color" id="inpTextColor" value="#000000" style="width:100%; height:38px;">
+                            <small id="inpTextColorWarning" style="color: #888; display: none; margin-top: 5px;">(Включен единый цвет)</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -138,23 +179,82 @@ const grid = document.getElementById('grid');
 
 function hexToRgb(hex, opacity) { let r=0,g=0,b=0; if(!hex) hex='#ffffff'; if (hex.length==4){r=parseInt(hex[1]+hex[1],16);g=parseInt(hex[2]+hex[2],16);b=parseInt(hex[3]+hex[3],16);}else if(hex.length==7){r=parseInt(hex.substring(1,3),16);g=parseInt(hex.substring(3,5),16);b=parseInt(hex.substring(5,7),16);} return `rgba(${r},${g},${b},${opacity/100})`; }
 
+/**
+ * Live-update opacity without re-rendering the whole grid.
+ * This prevents flickering and focus loss on range/number inputs.
+ * @param {number} val Opacity value from 0 to 100.
+ */
+function syncOpacity(val) {
+    // 1. Sync both inputs
+    document.getElementById('globalBgOp').value = val;
+    document.getElementById('globalBgOpNum').value = val;
+
+    // 2. Get current color and calculate RGBA
+    const color = document.getElementById('globalBgColor').value;
+    const rgbaColor = hexToRgb(color, val);
+
+    // 3. Apply style directly to all text wrappers
+    document.querySelectorAll('.b-text-wrapper').forEach(el => {
+        el.style.backgroundColor = rgbaColor;
+    });
+}
+
+/**
+ * Saves global settings via AJAX. Called onchange/onblur.
+ */
+function syncSetSettings() {
+    const data = new FormData();
+    data.append('action', 'save_set_settings');
+    data.append('set_id', globalSettings.ID);
+    data.append('sessid', '<?=bitrix_sessid()?>');
+    
+    data.append('text_bg_show', document.getElementById('globalBgShow').checked ? 'Y' : 'N');
+    data.append('text_bg_color', document.getElementById('globalBgColor').value);
+    data.append('text_bg_opacity', document.getElementById('globalBgOp').value);
+
+    data.append('use_global_text_color', document.getElementById('globalTextColorShow').checked ? 'Y' : 'N');
+    data.append('global_text_color', document.getElementById('globalTextColor').value);
+
+    fetch('ajax_save_banner.php', {method:'POST', body:data})
+        .then(res => res.json())
+        .then(d => {
+            if(d.success) {
+                globalSettings.TEXT_BG_SHOW = document.getElementById('globalBgShow').checked ? 'Y' : 'N';
+                globalSettings.TEXT_BG_COLOR = document.getElementById('globalBgColor').value;
+                globalSettings.TEXT_BG_OPACITY = document.getElementById('globalBgOp').value;
+                globalSettings.USE_GLOBAL_TEXT_COLOR = document.getElementById('globalTextColorShow').checked ? 'Y' : 'N';
+                globalSettings.GLOBAL_TEXT_COLOR = document.getElementById('globalTextColor').value;
+                render(); 
+            } else {
+                alert('Ошибка сохранения настроек:\n' + (d.errors ? d.errors.join('\n') : ''));
+            }
+        });
+}
+
+
 function render() {
     grid.innerHTML = '';
     const list = Object.values(banners).sort((a,b) => (parseInt(a.SORT)||500) - (parseInt(b.SORT)||500));
     for(let i=0; i < 8; i++) {
         const b = list[i], el = document.createElement('div');
-        el.className = 'slot'; el.dataset.slotIndex = b ? b.SLOT_INDEX : -1; el.dataset.visualIndex = i;
+        el.className = 'slot'; el.dataset.slotIndex = b ? b.SLOT_INDEX : (i + 1); el.dataset.i = i + 1;
         if (b) {
             el.style.backgroundColor = b.COLOR || '#fff';
             if(b.IMAGE) { el.style.backgroundImage = `url(${b.IMAGE})`; el.style.backgroundSize = `${b.IMG_SCALE || 100}%`; el.style.backgroundPosition = `${b.IMG_POS_X || 50}% ${b.IMG_POS_Y || 50}%`; }
             
             const content = document.createElement('div');
             content.className = `slot-content text-${b.TEXT_ALIGN || 'center'}`;
-            content.style.color = b.TEXT_COLOR || '#000';
+            let textColor = b.TEXT_COLOR || '#000000';
+            if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') {
+                textColor = globalSettings.GLOBAL_TEXT_COLOR;
+            }
+            content.style.color = textColor;
             
             const wrapper = document.createElement('div');
             wrapper.className = 'b-text-wrapper';
-            if (globalSettings.TEXT_BG_SHOW === 'Y') { wrapper.style.backgroundColor = hexToRgb(globalSettings.TEXT_BG_COLOR, globalSettings.TEXT_BG_OPACITY); }
+            if (globalSettings.TEXT_BG_SHOW === 'Y') {
+                wrapper.style.backgroundColor = hexToRgb(globalSettings.TEXT_BG_COLOR, globalSettings.TEXT_BG_OPACITY);
+            }
             
             let innerHTML = '';
             if (b.TITLE) innerHTML += `<div class="b-title" style="font-size: ${b.TITLE_FONT_SIZE || '18px'}">${b.TITLE}</div>`;
@@ -173,7 +273,7 @@ function render() {
 }
 function findFreeSlotIndex() { for(let i=1; i<=100; i++) { if (!banners[i]) return i; } return 101; }
 function openPopupNew(visualIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = findFreeSlotIndex(); const sort = (visualIndex + 1) * 10; f.sort.value = sort; f.text_align.value = 'center'; document.getElementById('popupTitle').innerText = `Новый блок (Сортировка: ${sort})`; document.getElementById('popup').style.display = 'flex'; }
-function openPopup(slotIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = slotIndex; const b = banners[slotIndex] || {}; document.getElementById('popupTitle').innerText = `Настройка блока #${slotIndex}`; if(b.CATEGORY_ID) f.category_id.value = b.CATEGORY_ID; f.title.value = b.TITLE || ''; f.subtitle.value = b.SUBTITLE || ''; f.link.value = b.LINK || ''; f.sort.value = b.SORT || 500; f.text_align.value = b.TEXT_ALIGN || 'center'; f.color.value = b.COLOR || '#ffffff'; if(b.IMAGE) document.getElementById('inpImgUrl').value = b.IMAGE; f.img_scale.value = b.IMG_SCALE || 100; f.img_pos_x.value = b.IMG_POS_X || 50; f.img_pos_y.value = b.IMG_POS_Y || 50; document.getElementById('popup').style.display = 'flex'; }
+function openPopup(slotIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = slotIndex; const b = banners[slotIndex] || {}; document.getElementById('popupTitle').innerText = `Настройка блока #${slotIndex}`; if(b.CATEGORY_ID) f.category_id.value = b.CATEGORY_ID; f.title.value = b.TITLE || ''; f.subtitle.value = b.SUBTITLE || ''; f.link.value = b.LINK || ''; f.sort.value = b.SORT || 500; f.text_align.value = b.TEXT_ALIGN || 'center'; f.color.value = b.COLOR || '#ffffff'; if(b.IMAGE) document.getElementById('inpImgUrl').value = b.IMAGE; f.img_scale.value = b.IMG_SCALE || 100; f.img_pos_x.value = b.IMG_POS_X || 50; f.img_pos_y.value = b.IMG_POS_Y || 50; const textColorInput = document.getElementById('inpTextColor'); const textColorWarning = document.getElementById('inpTextColorWarning'); textColorInput.value = b.TEXT_COLOR || '#000000'; if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') { textColorInput.disabled = true; textColorWarning.style.display = 'block'; } else { textColorInput.disabled = false; textColorWarning.style.display = 'none'; } document.getElementById('popup').style.display = 'flex'; }
 function closePopup() { document.getElementById('popup').style.display = 'none'; }
 
 const adjuster = { preview: document.getElementById('adjPreview'), scale: document.getElementById('adjScale'), posX: document.getElementById('adjPosX'), posY: document.getElementById('adjPosY'), isDragging: false, startX: 0, startY: 0, initPosX: 50, initPosY: 50 };
@@ -204,11 +304,19 @@ adjuster.preview.onmousedown = function(e) { e.preventDefault(); adjuster.isDrag
 window.onmousemove = function(e) { if(!adjuster.isDragging) return; let newX = adjuster.initPosX - ((e.clientX - adjuster.startX) * 0.2); let newY = adjuster.initPosY - ((e.clientY - adjuster.startY) * 0.2); adjuster.posX.value = Math.max(0, Math.min(100, newX)); adjuster.posY.value = Math.max(0, Math.min(100, newY)); updateAdjusterPreview(); };
 window.onmouseup = function() { adjuster.isDragging = false; adjuster.preview.style.cursor = 'grab'; };
 
-function saveGlobalSettings() { const data = new FormData(); data.append('action', 'save_set_settings'); data.append('set_id', globalSettings.ID); data.append('sessid', '<?=bitrix_sessid()?>'); data.append('show', document.getElementById('globalBgShow').checked ? 'Y' : 'N'); data.append('color', document.getElementById('globalBgColor').value); data.append('opacity', document.getElementById('globalBgOp').value); fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:data}).then(res => res.json()).then(d => { if(d.success) { globalSettings = d.data; render(); } else { alert('Ошибка сохранения настроек'); } }); }
-function initGlobalSettings() { if(!globalSettings) return; document.getElementById('globalBgShow').checked = globalSettings.TEXT_BG_SHOW === 'Y'; document.getElementById('globalBgColor').value = globalSettings.TEXT_BG_COLOR; document.getElementById('globalBgOp').value = globalSettings.TEXT_BG_OPACITY; ['globalBgShow', 'globalBgColor', 'globalBgOp'].forEach(id => document.getElementById(id).addEventListener('change', saveGlobalSettings)); }
+function initGlobalSettings() {
+    if(!globalSettings) return;
+    document.getElementById('globalBgShow').checked = globalSettings.TEXT_BG_SHOW === 'Y';
+    document.getElementById('globalBgColor').value = globalSettings.TEXT_BG_COLOR || '#ffffff';
+    document.getElementById('globalBgOp').value = globalSettings.TEXT_BG_OPACITY || 90;
+    document.getElementById('globalBgOpNum').value = globalSettings.TEXT_BG_OPACITY || 90;
+    
+    document.getElementById('globalTextColorShow').checked = globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y';
+    document.getElementById('globalTextColor').value = globalSettings.GLOBAL_TEXT_COLOR || '#000000';
+}
 
 document.getElementById('catSelect').addEventListener('change', function() { const sec = sections[this.value]; if(sec) { document.getElementById('inpTitle').value = sec.title; document.getElementById('inpSubtitle').value = sec.subtitle; document.getElementById('inpLink').value = sec.link; if(sec.image) document.getElementById('inpImgUrl').value = sec.image; } });
-document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); closePopup(); } else { alert(data.errors.join('\n')); } };
+document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); closePopup(); } else { alert(data.errors.join('\n')); } };
 
 initGlobalSettings();
 render();
