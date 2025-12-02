@@ -94,17 +94,34 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .adjust-text-overlay { pointer-events: none; }
     .adjust-controls { padding: 20px; }
 
-    .fmt-row { display: flex; gap: 2px; }
+    /* Скрываем чекбоксы */
     .fmt-btn-real { display: none; }
+
+    /* Общий стиль кнопок форматирования */
     .fmt-icon {
-        display: flex; align-items: center; justify-content: center;
-        width: 32px; height: 32px;
-        border: 1px solid #ccc; background: #f8f9fa; cursor: pointer;
-        font-family: serif; font-size: 16px; color: #333;
+        display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;
+        color: #333; transition: all 0.2s;
     }
-    .fmt-icon:first-of-type { border-radius: 4px 0 0 4px; }
-    .fmt-icon:last-of-type { border-radius: 0 4px 4px 0; }
-    .fmt-btn-real:checked + .fmt-icon { background: #6c757d; color: #fff; border-color: #6c757d; }
+    /* Активное состояние - Зеленый */
+    .fmt-btn-real:checked + .fmt-icon, 
+    .fmt-icon.active { /* Класс active для глобальных кнопок */
+        background: #4caf50; color: #fff; border-color: #4caf50;
+    }
+
+    /* Глобальные кнопки (в верхней панели) - побольше */
+    .global-format .fmt-icon {
+        width: 36px; height: 36px; font-size: 16px; margin-right: -1px;
+    }
+    .global-format .fmt-icon:first-of-type { border-radius: 4px 0 0 4px; }
+    .global-format .fmt-icon:last-of-type { border-radius: 0 4px 4px 0; }
+
+    /* Локальные кнопки (в попапе) - МАЛЕНЬКИЕ */
+    .local-fmt .fmt-icon {
+        width: 26px; height: 26px; font-size: 13px; margin-right: -1px;
+    }
+    .local-fmt .fmt-icon:first-of-type { border-radius: 3px 0 0 3px; }
+    .local-fmt .fmt-icon:last-of-type { border-radius: 0 3px 3px 0; }
 </style>
 
 <div class="construct-wrap">
@@ -130,16 +147,20 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         </div>
         <div class="settings-group global-format" style="background:#fff8e1; border-color:#ffe0b2; margin-top: 15px;">
             <div class="group-title" style="background:#ffecb3; color:#ef6c00;">Форматирование текста (для всех)</div>
-            <div class="form-row flex-center" style="gap:10px; padding:10px 20px;">
+            <div class="form-row flex-center" style="gap:10px; padding:10px 20px; display: flex; align-items: center;">
                 <b>Заголовки:</b>
-                <button type="button" class="adm-btn" onclick="massFormat('TITLE_BOLD')">B</button>
-                <button type="button" class="adm-btn" onclick="massFormat('TITLE_ITALIC')">I</button>
-                <button type="button" class="adm-btn" onclick="massFormat('TITLE_UNDERLINE')">U</button>
-                <div class="sep"></div>
+                <div style="display:flex; margin-left: 5px;">
+                    <span class="fmt-icon" style="font-weight:bold" onclick="massFormat('TITLE_BOLD', 'Y')">B</span>
+                    <span class="fmt-icon" style="font-style:italic" onclick="massFormat('TITLE_ITALIC', 'Y')">I</span>
+                    <span class="fmt-icon" style="text-decoration:underline" onclick="massFormat('TITLE_UNDERLINE', 'Y')">U</span>
+                </div>
+                <div class="sep" style="margin: 0 15px;"></div>
                 <b>Анонсы:</b>
-                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_BOLD')">B</button>
-                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_ITALIC')">I</button>
-                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_UNDERLINE')">U</button>
+                 <div style="display:flex; margin-left: 5px;">
+                    <span class="fmt-icon" style="font-weight:bold" onclick="massFormat('SUBTITLE_BOLD', 'Y')">B</span>
+                    <span class="fmt-icon" style="font-style:italic" onclick="massFormat('SUBTITLE_ITALIC', 'Y')">I</span>
+                    <span class="fmt-icon" style="text-decoration:underline" onclick="massFormat('SUBTITLE_UNDERLINE', 'Y')">U</span>
+                </div>
             </div>
         </div>
     </div>
@@ -161,8 +182,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         <div class="form-row"><label>Заполнить из категории</label><select id="catSelect" name="category_id" class="form-control"><option value="0">-- Не выбрано --</option><?php foreach($sections as $id => $s): ?><option value="<?=$id?>"><?=$s['title']?></option><?php endforeach; ?></select></div>
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                                <label style="margin:0;">Заголовок</label>
-                                <div class="fmt-row">
+                                <label style="margin:0">Заголовок</label>
+                                <div class="local-fmt">
                                     <label><input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
                                     <label><input type="checkbox" id="tb_i" name="title_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
                                     <label><input type="checkbox" id="tb_u" name="title_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
@@ -172,8 +193,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         </div>
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                                <label style="margin:0;">Анонс</label>
-                                <div class="fmt-row">
+                                <label style="margin:0">Анонс</label>
+                                <div class="local-fmt">
                                     <label><input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
                                     <label><input type="checkbox" id="sb_i" name="subtitle_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
                                     <label><input type="checkbox" id="sb_u" name="subtitle_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
@@ -279,27 +300,20 @@ function saveGlobalSettings() {
 }
 
 
-function massFormat(field) {
-    // Проверяем первый баннер (если есть)
-    const first = Object.values(banners)[0] || {};
-    const currentVal = first[field] === 'Y';
-    const newVal = currentVal ? 'N' : 'Y'; // Инвертируем
-
+function massFormat(field, val) { // val передаем 'Y' или 'N'
     const fd = new FormData();
     fd.append('action', 'save_mass_format');
     fd.append('set_id', '<?=$setId?>');
     fd.append('field', field);
-    fd.append('value', newVal);
+    fd.append('value', val); // Всегда ставим то, что нажали
     fd.append('sessid', '<?=bitrix_sessid()?>');
-
-    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}).then(r => r.json()).then(d => {
-       if (d.success) {
-            // Обновляем локально все баннеры
-            Object.values(banners).forEach(b => b[field] = newVal);
+    
+    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}).then(r=>r.json()).then(d=>{
+        if(d.success) {
+            // Обновляем локально
+            Object.values(banners).forEach(b => b[field] = val);
             render();
-       } else {
-           alert('Ошибка: ' + (d.errors ? d.errors.join('\n') : ''));
-       }
+        }
     });
 }
 
@@ -328,12 +342,12 @@ function render() {
             }
             
             let titleStyle = `font-size: ${b.TITLE_FONT_SIZE || '18px'};`;
-            if (b.TITLE_BOLD === 'Y') titleStyle += 'font-weight:bold;';
+            if (b.TITLE_BOLD === 'Y') titleStyle += 'font-weight:bold;'; else titleStyle += 'font-weight:normal;';
             if (b.TITLE_ITALIC === 'Y') titleStyle += 'font-style:italic;';
             if (b.TITLE_UNDERLINE === 'Y') titleStyle += 'text-decoration:underline;';
 
             let subtitleStyle = `font-size: ${b.SUBTITLE_FONT_SIZE || '14px'};`;
-            if (b.SUBTITLE_BOLD === 'Y') subtitleStyle += 'font-weight:bold;';
+            if (b.SUBTITLE_BOLD === 'Y') subtitleStyle += 'font-weight:bold;'; else subtitleStyle += 'font-weight:normal;';
             if (b.SUBTITLE_ITALIC === 'Y') subtitleStyle += 'font-style:italic;';
             if (b.SUBTITLE_UNDERLINE === 'Y') subtitleStyle += 'text-decoration:underline;';
 

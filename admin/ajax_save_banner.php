@@ -69,10 +69,10 @@ try {
         $name = trim($req->getPost('name'));
         $catMode = $req->getPost('category_mode') === 'Y' ? 'Y' : 'N';
         
+        // Создаем сет
         $res = \MyCompany\Banner\BannerSetTable::add([
             'NAME' => $name,
             'CATEGORY_MODE' => $catMode,
-            // defaults
             'TEXT_BG_SHOW' => 'N', 'TEXT_BG_COLOR' => '#ffffff', 'TEXT_BG_OPACITY' => 90,
             'USE_GLOBAL_TEXT_COLOR' => 'N', 'GLOBAL_TEXT_COLOR' => '#000000'
         ]);
@@ -82,34 +82,54 @@ try {
             $resp['success'] = true;
             $resp['id'] = $setId;
             
+            // --- УМНОЕ ЗАПОЛНЕНИЕ ---
+            $cats = [];
             if ($catMode === 'Y' && \Bitrix\Main\Loader::includeModule('iblock')) {
-                // 1. Ищем с описанием
-                $cats = [];
-                $rs = \CIBlockSection::GetList(['RAND'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', '!DESCRIPTION'=>false], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], ['nTopCount'=>8]);
-                while($r = $rs->GetNext()) $cats[] = $r;
+                // 1. Ищем приоритетные (с описанием)
+                $rsPriority = \CIBlockSection::GetList(
+                    ['RAND'=>'ASC'], 
+                    ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', '!DESCRIPTION'=>false], 
+                    false, 
+                    ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], 
+                    ['nTopCount'=>8]
+                );
+                while($r = $rsPriority->GetNext()) $cats[$r['ID']] = $r;
                 
-                // 2. Если мало, добираем любые
-                if (count($cats) < 8) {
-                    $rs = \CIBlockSection::GetList(['RAND'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y'], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], ['nTopCount'=>(8-count($cats))]);
-                    while($r = $rs->GetNext()) $cats[] = $r;
+                // 2. Если не хватает до 8, добираем любые
+                $needed = 8 - count($cats);
+                if ($needed > 0) {
+                    $filter = ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y'];
+                    if(!empty($cats)) $filter['!ID'] = array_keys($cats); // Исключаем уже найденные
+                    
+                    $rsAny = \CIBlockSection::GetList(
+                        ['RAND'=>'ASC'], 
+                        $filter, 
+                        false, 
+                        ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], 
+                        ['nTopCount'=>$needed]
+                    );
+                    while($r = $rsAny->GetNext()) $cats[] = $r;
                 }
-                
-                // 3. Заполняем слоты
-                for($i=1; $i<=8; $i++) {
-                    $cat = $cats[$i-1] ?? null;
-                    \MyCompany\Banner\BannerTable::add([
-                        'SET_ID' => $setId,
-                        'SLOT_INDEX' => $i,
-                        'TITLE' => $cat ? $cat['NAME'] : "Блок $i",
-                        'SUBTITLE' => $cat ? TruncateText(strip_tags($cat['DESCRIPTION']), 100) : "",
-                        'LINK' => $cat ? $cat['SECTION_PAGE_URL'] : '#',
-                        'IMAGE' => ($cat && $cat['PICTURE']) ? \CFile::GetPath($cat['PICTURE']) : '',
-                        'SORT' => $i * 10,
-                        'TITLE_BOLD' => 'Y', // По дефолту красиво
-                        'TEXT_COLOR' => '#000000',
-                        'TEXT_ALIGN' => 'center'
-                    ]);
-                }
+                // Сброс ключей массива
+                $cats = array_values($cats);
+            }
+            
+            // 3. Создаем 8 слотов
+            for($i=1; $i<=8; $i++) {
+                $cat = $cats[$i-1] ?? null;
+                \MyCompany\Banner\BannerTable::add([
+                    'SET_ID' => $setId,
+                    'SLOT_INDEX' => $i,
+                    'TITLE' => $cat ? $cat['NAME'] : "Блок $i",
+                    'SUBTITLE' => $cat ? TruncateText(strip_tags($cat['DESCRIPTION']), 150) : "", // Пусто, если нет описания
+                    'LINK' => $cat ? $cat['SECTION_PAGE_URL'] : '#',
+                    'IMAGE' => ($cat && $cat['PICTURE']) ? \CFile::GetPath($cat['PICTURE']) : '',
+                    'SORT' => $i * 10,
+                    'TITLE_BOLD' => 'Y', // По дефолту заголовки жирные
+                    'SUBTITLE_BOLD' => 'N',
+                    'TEXT_COLOR' => '#000000',
+                    'TEXT_ALIGN' => 'center'
+                ]);
             }
         } else {
             $resp['errors'] = $res->getErrorMessages();
