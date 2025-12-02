@@ -296,33 +296,45 @@ function openAdjuster() {
         document.getElementById('adjustTextOverlay').appendChild(contentToClone.cloneNode(true));
     }
 
-    adjuster.scale.value = document.getElementById('inpScale').value || 100; adjuster.posX.value = document.getElementById('inpPosX').value || 50; adjuster.posY.value = document.getElementById('inpPosY').value || 50;
-    updateAdjusterPreview(); document.getElementById('adjusterOverlay').style.display = 'flex';
+    // Инициализация значений: БЕРЕМ ИЗ СКРЫТЫХ ИНПУТОВ (они свежее всего в текущем сеансе)
+    // или из объекта banners, если инпуты пусты
+    const curScale = document.getElementById('inpScale').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_SCALE || 100;
+    const curX = document.getElementById('inpPosX').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_X || 50;
+    const curY = document.getElementById('inpPosY').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_Y || 50;
+
+    adjuster.scale.value = curScale;
+    adjuster.posX.value = curX;
+    adjuster.posY.value = curY;
+    
+    updateAdjusterPreview();
+    document.getElementById('adjusterOverlay').style.display = 'flex';
 }
 function closeAdjuster() { document.getElementById('adjusterOverlay').style.display = 'none'; }
 function updateAdjusterPreview() { adjuster.preview.style.backgroundSize = `${adjuster.scale.value}%`; adjuster.preview.style.backgroundPosition = `${adjuster.posX.value}% ${adjuster.posY.value}%`; document.getElementById('scaleVal').innerText = adjuster.scale.value; }
 function applyAdjustments() {
     const slotIndex = document.getElementById('slotIndex').value;
     
-    // 1. Записываем значения в скрытые поля формы (для отправки на сервер)
-    document.getElementById('inpScale').value = adjuster.scale.value;
-    document.getElementById('inpPosX').value = adjuster.posX.value;
-    document.getElementById('inpPosY').value = adjuster.posY.value;
+    // 1. Берем значения из переменных adjuster
+    const scale = adjuster.scale.value;
+    const posX = adjuster.posX.value;
+    const posY = adjuster.posY.value;
+
+    // 2. Пишем в скрытые инпуты формы (чтобы ушло на сервер при Save)
+    document.getElementById('inpScale').value = scale;
+    document.getElementById('inpPosX').value = posX;
+    document.getElementById('inpPosY').value = posY;
     
-    // 2. МГНОВЕННО обновляем объект в памяти (чтобы render показал изменения)
+    // 3. КРИТИЧНО: Обновляем объект banners в памяти!
     if (!banners[slotIndex]) banners[slotIndex] = { SLOT_INDEX: slotIndex };
     
-    banners[slotIndex].IMG_SCALE = adjuster.scale.value;
-    banners[slotIndex].IMG_POS_X = adjuster.posX.value;
-    banners[slotIndex].IMG_POS_Y = adjuster.posY.value;
+    banners[slotIndex].IMG_SCALE = scale;
+    banners[slotIndex].IMG_POS_X = posX;
+    banners[slotIndex].IMG_POS_Y = posY;
     
-    // Если мы загрузили файл, мы не можем обновить URL в базе прямо сейчас,
-    // но мы можем обновить CSS для текущего просмотра
-    
-    // 3. Перерисовываем сетку
+    // 4. Принудительно обновляем визуальное отображение
     render();
     
-    // 4. Закрываем окно
+    // 5. Закрываем окно
     closeAdjuster();
 }
 adjuster.scale.addEventListener('input', updateAdjusterPreview);

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Banners Grid</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+        canvas {
+            display: block;
+            /* Тень для самого холста, чтобы выделить его на фоне */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            background-color: #f5f5f5; 
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="bannerCanvas"></canvas>
+
+<script>
+/**
+ * КОНФИГУРАЦИЯ БАННЕРОВ
+ * type: 'large' | 'small'
+ * color: фон блока
+ * title: заголовок
+ * iconType: тип рисуемой иконки (для примера)
+ */
+const bannersData = [
+    // --- ВЕРХНИЕ БОЛЬШИЕ (4 шт) ---
+    { id: 1, type: 'large', color: '#a8c6bf', title: 'ОРТОПЕДИЧЕСКИЕ\nПОДУШКИ', subtitle: 'с эффектом памяти', iconType: 'pillow' },
+    { id: 2, type: 'large', color: '#b0d0e8', title: 'НАМАТРАСНИКИ', subtitle: '', iconType: 'layer' },
+    { id: 3, type: 'large', color: '#cfcfcf', title: 'ОДЕЯЛА', subtitle: '', iconType: 'blanket' },
+    { id: 4, type: 'large', color: '#e0dcd5', title: 'ПОКРЫВАЛА', subtitle: '', iconType: 'bed' },
+    
+    // --- НИЖНИЕ МАЛЕНЬКИЕ (6 шт) ---
+    { id: 5, type: 'small', color: '#fce4d6', title: 'ДЕКОРАТИВНЫЕ\nПОДУШКИ', iconType: 'circle' },
+    { id: 6, type: 'small', color: '#e8e8e8', title: 'ПОДУШКИ\nПУХОВЫЕ', iconType: 'pillow_simple' },
+    { id: 7, type: 'small', color: '#fff4e0', title: 'ЗАЩИТНЫЕ\nЧЕХЛЫ', iconType: 'shield' },
+    { id: 8, type: 'small', color: '#e0f7fa', title: 'НЕПРОМОКАЕМЫЕ', iconType: 'drop' },
+    { id: 9, type: 'small', color: '#f3e5f5', title: 'ПОСТЕЛЬНОЕ\nБЕЛЬЕ', iconType: 'rect' },
+    { id: 10, type: 'small', color: '#e8f5e9', title: 'ПЛЕДЫ', iconType: 'lines' },
+];
+
+const canvas = document.getElementById('bannerCanvas');
+const ctx = canvas.getContext('2d');
+
+// Состояние
+let canvasWidth = window.innerWidth;
+let scale = window.devicePixelRatio || 1;
+let calculatedBanners = []; // Здесь будем хранить координаты отрисованных блоков
+let hoveredIndex = -1;      // Индекс блока, над которым курсор
+
+// Настройки макета
+const CONFIG = {
+    padding: 20,       // Отступ от краев холста
+    gap: 20,           // Расстояние между блоками
+    borderRadius: 16,
+    largeHeight: 220,
+    smallHeight: 160,
+    fontMain: '800 24px "Segoe UI", Roboto, sans-serif',
+    fontSmall: '800 16px "Segoe UI", Roboto, sans-serif',
+    fontSub: '500 14px "Segoe UI", Roboto, sans-serif'
+};
+
+// --- ОСНОВНОЙ ЦИКЛ ОТРИСОВКИ ---
+
+function init() {
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // Интерактивность
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', () => { hoveredIndex = -1; draw(); });
+    canvas.addEventListener('click', onClick);
+}
+
+function resize() {
+    // Устанавливаем ширину канваса по ширине окна (с ограничением макс ширины для красоты)
+    let displayWidth = Math.min(window.innerWidth, 1400); 
+    
+    // Вычисляем высоту контента
+    const contentHeight = calculateLayout(displayWidth);
+    
+    // Настраиваем физические размеры с учетом DPI (для четкости на Retina)
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = contentHeight + 'px';
+    canvas.width = displayWidth * scale;
+    canvas.height = contentHeight * scale;
+    
+    ctx.scale(scale, scale);
+    
+    draw();
+}
+
+/**
+ * Расчет координат всех блоков (Layout Engine)
+ * Возвращает общую высоту контента
+ */
+function calculateLayout(width) {
+    calculatedBanners = [];
+    
+    const contentWidth = width - (CONFIG.padding * 2);
+    let currentY = CONFIG.padding;
+    
+    // --- 1. Секция больших баннеров (4 шт) ---
+    // Логика: Desktop = 2 колонки, Mobile = 1 колонка
+    let colsLarge = width > 768 ? 2 : 1;
+    let colWidthLarge = (contentWidth - (CONFIG.gap * (colsLarge - 1))) / colsLarge;
+    
+    const largeBanners = bannersData.filter(b => b.type === 'large');
+    
+    largeBanners.forEach((banner, index) => {
+        const row = Math.floor(index / colsLarge);
+        const col = index % colsLarge;
+        
+        calculatedBanners.push({
+            data: banner,
+            x: CONFIG.padding + col * (colWidthLarge + CONFIG.gap),
+            y: currentY + row * (CONFIG.largeHeight + CONFIG.gap),
+            w: colWidthLarge,
+            h: CONFIG.largeHeight
+        });
+    });
+    
+    // Сдвигаем Y вниз
+    const rowsLarge = Math.ceil(largeBanners.length / colsLarge);
+    currentY += rowsLarge * (CONFIG.largeHeight + CONFIG.gap);
+
+    // --- 2. Секция маленьких баннеров (6 шт) ---
+    // Логика: Desktop = 6 колонок, Tablet = 3 колонки, Mobile = 2 колонки
+    let colsSmall = 6;
+    if (width <= 1024) colsSmall = 3;
+    if (width <= 600) colsSmall = 2;
+    
+    let colWidthSmall = (contentWidth - (CONFIG.gap * (colsSmall - 1))) / colsSmall;
+    
+    const smallBanners = bannersData.filter(b => b.type === 'small');
+    
+    smallBanners.forEach((banner, index) => {
+        const row = Math.floor(index / colsSmall);
+        const col = index % colsSmall;
+        
+        calculatedBanners.push({
+            data: banner,
+            x: CONFIG.padding + col * (colWidthSmall + CONFIG.gap),
+            y: currentY + row * (CONFIG.smallHeight + CONFIG.gap),
+            w: colWidthSmall,
+            h: CONFIG.smallHeight
+        });
+    });
+    
+    // Итоговая высота
+    const rowsSmall = Math.ceil(smallBanners.length / colsSmall);
+    currentY += rowsSmall * (CONFIG.smallHeight + CONFIG.gap);
+    
+    return currentY; // Возвращаем общую высоту для ресайза канваса
+}
+
+function draw() {
+    // Очистка
+    ctx.clearRect(0, 0, canvas.width / scale, canvas.height / scale);
+    
+    calculatedBanners.forEach((item, i) => {
+        drawCard(item, i === hoveredIndex);
+    });
+}
+
+function drawCard(item, isHovered) {
+    const { x, y, w, h, data } = item;
+    
+    ctx.save();
+    
+    // 1. Тень и трансформация при наведении
+    if (isHovered) {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetY = 5;
+        // Эмуляция translateY(-2px)
+        ctx.translate(0, -2); 
+    }
+
+    // 2. Фон (скругленный прямоугольник)
+    drawRoundedRect(ctx, x, y, w, h, CONFIG.borderRadius);
+    ctx.fillStyle = data.color;
+    ctx.fill();
+    
+    // Клиппинг для контента, чтобы не вылезал за скругления
+    ctx.clip(); 
+
+    // 3. Декоративная иконка (справа или снизу)
+    drawIcon(data.iconType, x, y, w, h, data.type === 'large');
+
+    // 4. Текст
+    ctx.fillStyle = '#333333';
+    ctx.shadowColor = 'transparent'; // Убираем тень текста
+    
+    let textX = x + 30;
+    let textY = y + 50;
+    let maxWidth = w - 60; // Отступы с двух сторон
+
+    // Настройка шрифта
+    if (data.type === 'small') {
+        ctx.font = CONFIG.fontSmall;
+        // Для маленьких блоков текст внизу
+        textX = x + 20;
+        textY = y + h - 30;
+        maxWidth = w - 40;
+    } else {
+        ctx.font = CONFIG.fontMain;
+        maxWidth = w * 0.55; // Текст занимает 55% ширины в больших баннерах
+    }
+
+    // Рисуем многострочный текст
+    const lines = data.title.split('\n');
+    const lineHeight = data.type === 'large' ? 28 : 20;
+    
+    // Если это маленький блок, рисуем снизу вверх
+    if (data.type === 'small' && lines.length > 1) {
+       textY -= (lines.length - 1) * lineHeight;
+    }
+
+    lines.forEach((line, idx) => {
+        ctx.fillText(line, textX, textY + (idx * lineHeight));
+    });
+
+    // Subtitle (только для больших)
+    if (data.subtitle) {
+        ctx.font = CONFIG.fontSub;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillText(data.subtitle, textX, textY + (lines.length * lineHeight) + 5);
+    }
+
+    ctx.restore();
+}
+
+/**
+ * Рисование декоративных элементов (эмуляция картинок)
+ */
+function drawIcon(type, bx, by, bw, bh, isLarge) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    
+    // Центр иконки
+    let cx = bx + bw * 0.75;
+    let cy = by + bh / 2;
+    let size = isLarge ? 80 : 50;
+
+    if (!isLarge) {
+        // Для маленьких иконка чуть выше центра
+        cx = bx + bw / 2;
+        cy = by + bh * 0.4;
+    }
+
+    ctx.beginPath();
+    
+    switch (type) {
+        case 'pillow':
+        case 'pillow_simple':
+            // Форма подушки (скругленный rect с вмятиной)
+            drawRoundedRect(ctx, cx - size, cy - size/2, size*2, size, 20);
+            ctx.fill();
+            break;
+        case 'circle':
+            ctx.arc(cx, cy, size/1.5, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+        case 'layer':
+            // Стопка
+            drawRoundedRect(ctx, cx - size/1.2, cy - size/3, size*1.5, size/4, 5);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            drawRoundedRect(ctx, cx - size/1.2, cy, size*1.5, size/4, 5);
+            ctx.fill();
+            break;
+        case 'blanket':
+            // Волнистая линия или мягкий квадрат
+            ctx.moveTo(cx - size, cy);
+            ctx.quadraticCurveTo(cx, cy - size, cx + size, cy);
+            ctx.quadraticCurveTo(cx + size, cy + size, cx, cy + size);
+            ctx.quadraticCurveTo(cx - size, cy + size, cx - size, cy);
+            ctx.fill();
+            break;
+        default:
+            // Просто круг по умолчанию
+            ctx.arc(cx, cy, size/2, 0, Math.PI * 2);
+            ctx.fill();
+    }
+    
+    ctx.restore();
+}
+
+/**
+ * Утилита для рисования пути скругленного прямоугольника
+ */
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * Обработка движения мыши (Hover эффект)
+ */
+function onMouseMove(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left);
+    const mouseY = (e.clientY - rect.top);
+    
+    let foundIndex = -1;
+    
+    // Проверяем попадание в координаты блоков
+    for (let i = 0; i < calculatedBanners.length; i++) {
+        const b = calculatedBanners[i];
+        if (mouseX >= b.x && mouseX <= b.x + b.w &&
+            mouseY >= b.y && mouseY <= b.y + b.h) {
+            foundIndex = i;
+            break;
+        }
+    }
+    
+    if (foundIndex !== hoveredIndex) {
+        hoveredIndex = foundIndex;
+        canvas.style.cursor = hoveredIndex !== -1 ? 'pointer' : 'default';
+        draw(); // Перерисовка только при изменении состояния
+    }
+}
+
+/**
+ * Обработка клика
+ */
+function onClick(e) {
+    if (hoveredIndex !== -1) {
+        const item = calculatedBanners[hoveredIndex];
+        // Здесь можно сделать переход по ссылке
+        alert(`Клик по баннеру: ${item.data.title.replace('\n', ' ')}`);
+    }
+}
+
+// Запуск
+init();
+
+</script>
+</body>
+</html>

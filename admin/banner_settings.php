@@ -54,28 +54,28 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .set-id { color: #888; font-size: 12px; }
 
     #preview-popup {
-        width: 480px;       /* Компактная ширина */
-        height: 300px;      /* Компактная высота */
+        width: 480px;
         background: #fff;
         border: 1px solid #bbb;
-        box-shadow: 5px 5px 30px rgba(0,0,0,0.3);
+        box-shadow: 10px 10px 40px rgba(0,0,0,0.2);
         z-index: 99999;
         position: absolute;
         display: none;
         border-radius: 8px;
         padding: 10px;
         pointer-events: none;
-        overflow: hidden;
+        height: auto; 
+        min-height: 200px;
+        overflow: hidden; /* Added to contain scaled content */
     }
     #preview-grid {
-        width: 1420px;      /* Ширина оригинала */
-        transform: scale(0.3); /* 30% от размера */
+        width: 1420px;
+        transform: scale(0.32);
         transform-origin: top left;
         display: grid; 
         grid-template-columns: repeat(4, 1fr); 
         gap: 20px; 
     }
-
     #preview-grid .slot { 
         background-color: #eee; 
         background-size: cover; 
@@ -193,12 +193,15 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         const rect = el.getBoundingClientRect();
         popup.style.display = 'block';
         
-        // ВСЕГДА СПРАВА
+        // ЖЕСТКО СПРАВА
         popup.style.left = (rect.right + 15) + 'px';
-        
-        // Центрируем по вертикали относительно курсора, но не даем улететь вверх
-        let top = window.scrollY + rect.top - 50;
-        popup.style.top = top + 'px'; 
+        // Чуть выше середины курсора
+        let topPos = window.scrollY + rect.top - 20;
+        // Проверка, чтобы не улетел вниз экрана
+        if (topPos + popup.offsetHeight > window.scrollY + window.innerHeight) {
+            topPos = window.scrollY + window.innerHeight - popup.offsetHeight - 20;
+        }
+        popup.style.top = topPos + 'px'; 
     }
 
     function hidePreview() {
