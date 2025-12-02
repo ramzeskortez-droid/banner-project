@@ -94,21 +94,23 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .adjust-text-overlay { pointer-events: none; }
     .adjust-controls { padding: 20px; }
 
-    .fmt-btn { display: none; } /* Скрываем сам чекбокс */
-    .fmt-label {
-        display: inline-block; width: 30px; height: 30px; line-height: 30px;
-        text-align: center; border: 1px solid #ccc; border-radius: 4px;
-        cursor: pointer; background: #fff; color: #333; margin-right: 2px; font-weight: bold;
+    .fmt-row { display: flex; gap: 2px; }
+    .fmt-btn-real { display: none; }
+    .fmt-icon {
+        display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px;
+        border: 1px solid #ccc; background: #f8f9fa; cursor: pointer;
+        font-family: serif; font-size: 16px; color: #333;
     }
-    .fmt-btn:checked + .fmt-label {
-        background: #555; color: #fff; border-color: #333;
-    }
+    .fmt-icon:first-of-type { border-radius: 4px 0 0 4px; }
+    .fmt-icon:last-of-type { border-radius: 0 4px 4px 0; }
+    .fmt-btn-real:checked + .fmt-icon { background: #6c757d; color: #fff; border-color: #6c757d; }
 </style>
 
 <div class="construct-wrap">
     <div class="construct-header"><h2>Сетка баннеров</h2><a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a></div>
     <div class="global-settings">
-        <div class="form-row flex-center" style="padding: 15px 20px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        <div class="form-row flex-center" style="padding: 15px 20px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex-wrap: wrap;">
             
             <label><input type="checkbox" id="globalBgShow" onchange="saveGlobalSettings()"> Фон под текстом</label>
             <input type="color" id="globalBgColor" onchange="saveGlobalSettings()" value="#ffffff">
@@ -117,10 +119,14 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             <input type="number" id="globalBgOpNum" min="0" max="100" value="90" class="form-control" style="width: 60px; height: 30px;" oninput="syncOpacity(this.value)" onchange="saveGlobalSettings()">
             <span>%</span>
 
-            <div class="sep" style="margin:0 20px; border-left:1px solid #ddd; height:20px;"></div>
+            <div class="sep" style="margin:0 15px; border-left:1px solid #ddd; height:20px;"></div>
             
             <label><input type="checkbox" id="globalTextColorShow" onchange="saveGlobalSettings()"> Единый цвет текста</label>
             <input type="color" id="globalTextColor" onchange="saveGlobalSettings()" style="margin-left:5px;" value="#000000">
+
+            <div class="sep" style="margin:0 15px; border-left:1px solid #ddd; height:20px;"></div>
+
+            <label><input type="checkbox" id="globalCatMode" onchange="saveGlobalSettings()"> Режим категорий (Авто)</label>
         </div>
         <div class="settings-group global-format" style="background:#fff8e1; border-color:#ffe0b2; margin-top: 15px;">
             <div class="group-title" style="background:#ffecb3; color:#ef6c00;">Форматирование текста (для всех)</div>
@@ -154,20 +160,24 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     <div class="group-content">
                         <div class="form-row"><label>Заполнить из категории</label><select id="catSelect" name="category_id" class="form-control"><option value="0">-- Не выбрано --</option><?php foreach($sections as $id => $s): ?><option value="<?=$id?>"><?=$s['title']?></option><?php endforeach; ?></select></div>
                         <div class="form-row">
-                            <label>Заголовок</label>
-                            <div style="margin-bottom: 5px;">
-                                <input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn"><label for="tb_b" class="fmt-label">B</label>
-                                <input type="checkbox" id="tb_i" name="title_italic" value="Y" class="fmt-btn"><label for="tb_i" class="fmt-label" style="font-style:italic">I</label>
-                                <input type="checkbox" id="tb_u" name="title_underline" value="Y" class="fmt-btn"><label for="tb_u" class="fmt-label" style="text-decoration:underline">U</label>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="margin:0;">Заголовок</label>
+                                <div class="fmt-row">
+                                    <label><input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
+                                    <label><input type="checkbox" id="tb_i" name="title_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
+                                    <label><input type="checkbox" id="tb_u" name="title_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
+                                </div>
                             </div>
                             <input type="text" name="title" id="inpTitle" class="form-control">
                         </div>
                         <div class="form-row">
-                             <label>Анонс</label>
-                            <div style="margin-bottom: 5px;">
-                                <input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn"><label for="sb_b" class="fmt-label">B</label>
-                                <input type="checkbox" id="sb_i" name="subtitle_italic" value="Y" class="fmt-btn"><label for="sb_i" class="fmt-label" style="font-style:italic">I</label>
-                                <input type="checkbox" id="sb_u" name="subtitle_underline" value="Y" class="fmt-btn"><label for="sb_u" class="fmt-label" style="text-decoration:underline">U</label>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="margin:0;">Анонс</label>
+                                <div class="fmt-row">
+                                    <label><input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
+                                    <label><input type="checkbox" id="sb_i" name="subtitle_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
+                                    <label><input type="checkbox" id="sb_u" name="subtitle_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
+                                </div>
                             </div>
                             <textarea name="subtitle" id="inpSubtitle" class="form-control" rows="2"></textarea>
                         </div>
@@ -248,19 +258,13 @@ function saveGlobalSettings() {
     data.append('set_id', globalSettings.ID || 1);
     data.append('sessid', '<?=bitrix_sessid()?>');
     
-    // Фон
     data.append('show', document.getElementById('globalBgShow').checked ? 'Y' : 'N');
     data.append('color', document.getElementById('globalBgColor').value);
     data.append('opacity', document.getElementById('globalBgOp').value);
     
-    // Цвет текста (ПРОВЕРЬ ID ЭЛЕМЕНТОВ В HTML!)
-    const globalTextCheck = document.getElementById('globalTextColorShow');
-    const globalTextCol = document.getElementById('globalTextColor');
-    
-    if(globalTextCheck && globalTextCol) {
-        data.append('use_global_text_color', globalTextCheck.checked ? 'Y' : 'N');
-        data.append('global_text_color', globalTextCol.value);
-    }
+    data.append('use_global_text_color', document.getElementById('globalTextColorShow').checked ? 'Y' : 'N');
+    data.append('global_text_color', document.getElementById('globalTextColor').value);
+    data.append('category_mode', document.getElementById('globalCatMode').checked ? 'Y' : 'N');
 
     fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:data})
         .then(res => res.json())
@@ -269,7 +273,7 @@ function saveGlobalSettings() {
                 globalSettings = d.data;
                 render();
             } else {
-                alert('Ошибка: ' + d.errors.join('\n'));
+                alert('Ошибка: ' + (d.errors ? d.errors.join('\n') : 'Unknown error'));
             }
         });
 }
@@ -462,6 +466,7 @@ function initGlobalSettings() {
     
     document.getElementById('globalTextColorShow').checked = globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y';
     document.getElementById('globalTextColor').value = globalSettings.GLOBAL_TEXT_COLOR || '#000000';
+    document.getElementById('globalCatMode').checked = globalSettings.CATEGORY_MODE === 'Y';
 }
 
 document.getElementById('catSelect').addEventListener('change', function() { const sec = sections[this.value]; if(sec) { document.getElementById('inpTitle').value = sec.title; document.getElementById('inpSubtitle').value = sec.subtitle; document.getElementById('inpLink').value = sec.link; if(sec.image) document.getElementById('inpImgUrl').value = sec.image; } });

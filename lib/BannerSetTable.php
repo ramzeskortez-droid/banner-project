@@ -17,6 +17,7 @@ class BannerSetTable extends DataManager
             new IntegerField('TEXT_BG_OPACITY', ['default_value' => 90]),
             new BooleanField('USE_GLOBAL_TEXT_COLOR', ['values' => ['N', 'Y'], 'default_value' => 'N']),
             new StringField('GLOBAL_TEXT_COLOR', ['default_value' => '#000000']),
+            new \Bitrix\Main\ORM\Fields\BooleanField('CATEGORY_MODE', ['values' => ['N', 'Y'], 'default_value' => 'Y']),
         ];
     }
 }

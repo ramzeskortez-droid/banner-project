@@ -35,5 +35,5 @@
 .text-center { align-items: center; text-align: center; }
 .text-right { align-items: flex-end; text-align: right; }
 
-.b-title { font-weight: bold; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
+.b-title { font-weight: normal; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
 .b-sub { opacity: 0.95; line-height: 1.4; }

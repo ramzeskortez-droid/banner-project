@@ -33,6 +33,7 @@ try {
             'TEXT_BG_OPACITY' => (int)$req->getPost('opacity'),
             'USE_GLOBAL_TEXT_COLOR' => $req->getPost('use_global_text_color') === 'Y' ? 'Y' : 'N',
             'GLOBAL_TEXT_COLOR' => trim($req->getPost('global_text_color')),
+            'CATEGORY_MODE' => $req->getPost('category_mode') === 'Y' ? 'Y' : 'N',
         ];
 
         $exist = BannerSetTable::getById($setId)->fetch();
@@ -65,19 +66,51 @@ try {
         $resp['success'] = true;
     }
     elseif ($action === 'create_set') {
-        $name = $req->getPost('name');
+        $name = trim($req->getPost('name'));
+        $catMode = $req->getPost('category_mode') === 'Y' ? 'Y' : 'N';
+        
         $res = \MyCompany\Banner\BannerSetTable::add([
             'NAME' => $name,
-            // Дефолтные настройки
-            'TEXT_BG_SHOW' => 'N',
-            'TEXT_BG_COLOR' => '#ffffff',
-            'TEXT_BG_OPACITY' => 90,
-            'USE_GLOBAL_TEXT_COLOR' => 'N',
-            'GLOBAL_TEXT_COLOR' => '#000000'
+            'CATEGORY_MODE' => $catMode,
+            // defaults
+            'TEXT_BG_SHOW' => 'N', 'TEXT_BG_COLOR' => '#ffffff', 'TEXT_BG_OPACITY' => 90,
+            'USE_GLOBAL_TEXT_COLOR' => 'N', 'GLOBAL_TEXT_COLOR' => '#000000'
         ]);
+        
         if ($res->isSuccess()) {
+            $setId = $res->getId();
             $resp['success'] = true;
-            $resp['id'] = $res->getId();
+            $resp['id'] = $setId;
+            
+            if ($catMode === 'Y' && \Bitrix\Main\Loader::includeModule('iblock')) {
+                // 1. Ищем с описанием
+                $cats = [];
+                $rs = \CIBlockSection::GetList(['RAND'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', '!DESCRIPTION'=>false], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], ['nTopCount'=>8]);
+                while($r = $rs->GetNext()) $cats[] = $r;
+                
+                // 2. Если мало, добираем любые
+                if (count($cats) < 8) {
+                    $rs = \CIBlockSection::GetList(['RAND'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y'], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], ['nTopCount'=>(8-count($cats))]);
+                    while($r = $rs->GetNext()) $cats[] = $r;
+                }
+                
+                // 3. Заполняем слоты
+                for($i=1; $i<=8; $i++) {
+                    $cat = $cats[$i-1] ?? null;
+                    \MyCompany\Banner\BannerTable::add([
+                        'SET_ID' => $setId,
+                        'SLOT_INDEX' => $i,
+                        'TITLE' => $cat ? $cat['NAME'] : "Блок $i",
+                        'SUBTITLE' => $cat ? TruncateText(strip_tags($cat['DESCRIPTION']), 100) : "",
+                        'LINK' => $cat ? $cat['SECTION_PAGE_URL'] : '#',
+                        'IMAGE' => ($cat && $cat['PICTURE']) ? \CFile::GetPath($cat['PICTURE']) : '',
+                        'SORT' => $i * 10,
+                        'TITLE_BOLD' => 'Y', // По дефолту красиво
+                        'TEXT_COLOR' => '#000000',
+                        'TEXT_ALIGN' => 'center'
+                    ]);
+                }
+            }
         } else {
             $resp['errors'] = $res->getErrorMessages();
         }

@@ -144,6 +144,23 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div id="preview-popup"><div id="preview-crop"></div></div>
 
+<div id="create-popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:25px; border-radius:6px; width:350px; box-shadow:0 5px 20px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; margin-bottom:15px;">Новый баннер</h3>
+        <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold;">Название:</label>
+            <input type="text" id="newSetName" class="adm-input" style="width:100%; box-sizing:border-box;" placeholder="Например: Весна 2025">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label><input type="checkbox" id="newSetAuto" checked> Заполнить категориями (Авто)</label>
+        </div>
+        <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end;">
+            <button class="adm-btn" onclick="document.getElementById('create-popup').style.display='none'">Отмена</button>
+            <button class="adm-btn adm-btn-save" onclick="doCreate()">Создать</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const setsData = <?=json_encode(array_values($bannersBySet))?>;
     const setsDataById = <?=json_encode($bannersBySet)?>;
@@ -151,13 +168,19 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     const popupCrop = document.getElementById('preview-crop');
 
     function createSet() {
-        // Можно сделать prompt для имени или авто-имя
-        const name = prompt("Введите название для нового баннера:", "Новый баннер");
-        if(!name) return;
+        document.getElementById('create-popup').style.display = 'flex';
+        document.getElementById('newSetName').focus();
+    }
+    
+    function doCreate() {
+        const name = document.getElementById('newSetName').value;
+        if(!name) return alert('Введите название');
+        const auto = document.getElementById('newSetAuto').checked ? 'Y' : 'N';
 
         const fd = new FormData();
         fd.append('action', 'create_set');
         fd.append('name', name);
+        fd.append('category_mode', auto);
         fd.append('sessid', '<?=bitrix_sessid()?>');
 
         fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})

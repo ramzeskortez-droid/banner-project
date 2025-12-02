@@ -35,9 +35,9 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
     $textAlign = $banner['TEXT_ALIGN'] ?: 'center';
     
     $titleStyle = "font-size:" . ($banner['TITLE_FONT_SIZE'] ?: '20px') . ";";
-    if ($banner['TITLE_BOLD'] == 'Y') $titleStyle .= "font-weight:bold;";
-    if ($banner['TITLE_ITALIC'] == 'Y') $titleStyle .= "font-style:italic;";
-    if ($banner['TITLE_UNDERLINE'] == 'Y') $titleStyle .= "text-decoration:underline;";
+    $titleStyle .= ($banner['TITLE_BOLD'] == 'Y') ? "font-weight:bold;" : "font-weight:normal;";
+    $titleStyle .= ($banner['TITLE_ITALIC'] == 'Y') ? "font-style:italic;" : "";
+    $titleStyle .= ($banner['TITLE_UNDERLINE'] == 'Y') ? "text-decoration:underline;" : "";
 
     $subtitleStyle = "font-size:" . ($banner['SUBTITLE_FONT_SIZE'] ?: '14px') . ";";
     if ($banner['SUBTITLE_BOLD'] == 'Y') $subtitleStyle .= "font-weight:bold;";
