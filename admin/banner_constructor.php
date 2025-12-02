@@ -93,6 +93,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .adjust-preview { height: 350px; width: 100%; background-size: 100%; background-position: 50% 50%; border-bottom: 1px solid #ddd; position: relative; background-color: #eee; cursor: grab; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
     .adjust-text-overlay { pointer-events: none; }
     .adjust-controls { padding: 20px; }
+
+    .fmt-btn { display: none; } /* Скрываем сам чекбокс */
+    .fmt-label {
+        display: inline-block; width: 30px; height: 30px; line-height: 30px;
+        text-align: center; border: 1px solid #ccc; border-radius: 4px;
+        cursor: pointer; background: #fff; color: #333; margin-right: 2px; font-weight: bold;
+    }
+    .fmt-btn:checked + .fmt-label {
+        background: #555; color: #fff; border-color: #333;
+    }
 </style>
 
 <div class="construct-wrap">
@@ -112,6 +122,20 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             <label><input type="checkbox" id="globalTextColorShow" onchange="saveGlobalSettings()"> Единый цвет текста</label>
             <input type="color" id="globalTextColor" onchange="saveGlobalSettings()" style="margin-left:5px;" value="#000000">
         </div>
+        <div class="settings-group global-format" style="background:#fff8e1; border-color:#ffe0b2; margin-top: 15px;">
+            <div class="group-title" style="background:#ffecb3; color:#ef6c00;">Форматирование текста (для всех)</div>
+            <div class="form-row flex-center" style="gap:10px; padding:10px 20px;">
+                <b>Заголовки:</b>
+                <button type="button" class="adm-btn" onclick="massFormat('TITLE_BOLD')">B</button>
+                <button type="button" class="adm-btn" onclick="massFormat('TITLE_ITALIC')">I</button>
+                <button type="button" class="adm-btn" onclick="massFormat('TITLE_UNDERLINE')">U</button>
+                <div class="sep"></div>
+                <b>Анонсы:</b>
+                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_BOLD')">B</button>
+                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_ITALIC')">I</button>
+                <button type="button" class="adm-btn" onclick="massFormat('SUBTITLE_UNDERLINE')">U</button>
+            </div>
+        </div>
     </div>
     <div class="grid" id="grid"></div>
 </div>
@@ -129,8 +153,24 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                 <div class="settings-group"><div class="group-title">Основные данные</div>
                     <div class="group-content">
                         <div class="form-row"><label>Заполнить из категории</label><select id="catSelect" name="category_id" class="form-control"><option value="0">-- Не выбрано --</option><?php foreach($sections as $id => $s): ?><option value="<?=$id?>"><?=$s['title']?></option><?php endforeach; ?></select></div>
-                        <div class="form-row"><label>Заголовок</label><input type="text" name="title" id="inpTitle" class="form-control"></div>
-                        <div class="form-row"><label>Анонс</label><textarea name="subtitle" id="inpSubtitle" class="form-control" rows="2"></textarea></div>
+                        <div class="form-row">
+                            <label>Заголовок</label>
+                            <div style="margin-bottom: 5px;">
+                                <input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn"><label for="tb_b" class="fmt-label">B</label>
+                                <input type="checkbox" id="tb_i" name="title_italic" value="Y" class="fmt-btn"><label for="tb_i" class="fmt-label" style="font-style:italic">I</label>
+                                <input type="checkbox" id="tb_u" name="title_underline" value="Y" class="fmt-btn"><label for="tb_u" class="fmt-label" style="text-decoration:underline">U</label>
+                            </div>
+                            <input type="text" name="title" id="inpTitle" class="form-control">
+                        </div>
+                        <div class="form-row">
+                             <label>Анонс</label>
+                            <div style="margin-bottom: 5px;">
+                                <input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn"><label for="sb_b" class="fmt-label">B</label>
+                                <input type="checkbox" id="sb_i" name="subtitle_italic" value="Y" class="fmt-btn"><label for="sb_i" class="fmt-label" style="font-style:italic">I</label>
+                                <input type="checkbox" id="sb_u" name="subtitle_underline" value="Y" class="fmt-btn"><label for="sb_u" class="fmt-label" style="text-decoration:underline">U</label>
+                            </div>
+                            <textarea name="subtitle" id="inpSubtitle" class="form-control" rows="2"></textarea>
+                        </div>
                         <div class="form-row"><label>Ссылка</label><input type="text" name="link" id="inpLink" class="form-control"></div>
                          <div class="form-row"><label>Сортировка</label><input type="number" name="sort" id="inpSort" class="form-control"></div>
                     </div>
@@ -235,6 +275,30 @@ function saveGlobalSettings() {
 }
 
 
+function massFormat(field) {
+    // Проверяем первый баннер (если есть)
+    const first = Object.values(banners)[0] || {};
+    const currentVal = first[field] === 'Y';
+    const newVal = currentVal ? 'N' : 'Y'; // Инвертируем
+
+    const fd = new FormData();
+    fd.append('action', 'save_mass_format');
+    fd.append('set_id', '<?=$setId?>');
+    fd.append('field', field);
+    fd.append('value', newVal);
+    fd.append('sessid', '<?=bitrix_sessid()?>');
+
+    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}).then(r => r.json()).then(d => {
+       if (d.success) {
+            // Обновляем локально все баннеры
+            Object.values(banners).forEach(b => b[field] = newVal);
+            render();
+       } else {
+           alert('Ошибка: ' + (d.errors ? d.errors.join('\n') : ''));
+       }
+    });
+}
+
 function render() {
     grid.innerHTML = '';
     const list = Object.values(banners).sort((a,b) => (parseInt(a.SORT)||500) - (parseInt(b.SORT)||500));
@@ -259,13 +323,23 @@ function render() {
                 wrapper.style.backgroundColor = hexToRgb(globalSettings.TEXT_BG_COLOR, globalSettings.TEXT_BG_OPACITY);
             }
             
+            let titleStyle = `font-size: ${b.TITLE_FONT_SIZE || '18px'};`;
+            if (b.TITLE_BOLD === 'Y') titleStyle += 'font-weight:bold;';
+            if (b.TITLE_ITALIC === 'Y') titleStyle += 'font-style:italic;';
+            if (b.TITLE_UNDERLINE === 'Y') titleStyle += 'text-decoration:underline;';
+
+            let subtitleStyle = `font-size: ${b.SUBTITLE_FONT_SIZE || '14px'};`;
+            if (b.SUBTITLE_BOLD === 'Y') subtitleStyle += 'font-weight:bold;';
+            if (b.SUBTITLE_ITALIC === 'Y') subtitleStyle += 'font-style:italic;';
+            if (b.SUBTITLE_UNDERLINE === 'Y') subtitleStyle += 'text-decoration:underline;';
+
             let innerHTML = '';
-            if (b.TITLE) innerHTML += `<div class="b-title" style="font-size: ${b.TITLE_FONT_SIZE || '18px'}">${b.TITLE}</div>`;
-            if (b.SUBTITLE) innerHTML += `<div class="b-sub" style="font-size: ${b.SUBTITLE_FONT_SIZE || '14px'}">${b.SUBTITLE}</div>`;
+            if (b.TITLE) innerHTML += `<div class="b-title" style="${titleStyle}">${b.TITLE}</div>`;
+            if (b.SUBTITLE) innerHTML += `<div class="b-sub" style="${subtitleStyle}">${b.SUBTITLE}</div>`;
             wrapper.innerHTML = innerHTML;
 
             content.appendChild(wrapper);
-            el.appendChild(content);
+el.appendChild(content);
             el.onclick = () => openPopup(b.SLOT_INDEX);
         } else {
             el.innerHTML = '<div class="slot-placeholder">Слот '+(i+1)+'<br><small>Настроить</small></div>';
@@ -276,7 +350,44 @@ function render() {
 }
 function findFreeSlotIndex() { for(let i=1; i<=100; i++) { if (!banners[i]) return i; } return 101; }
 function openPopupNew(visualIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = findFreeSlotIndex(); const sort = (visualIndex + 1) * 10; f.sort.value = sort; f.text_align.value = 'center'; document.getElementById('popupTitle').innerText = `Новый блок (Сортировка: ${sort})`; document.getElementById('popup').style.display = 'flex'; }
-function openPopup(slotIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = slotIndex; const b = banners[slotIndex] || {}; document.getElementById('popupTitle').innerText = `Настройка блока #${slotIndex}`; if(b.CATEGORY_ID) f.category_id.value = b.CATEGORY_ID; f.title.value = b.TITLE || ''; f.subtitle.value = b.SUBTITLE || ''; f.link.value = b.LINK || ''; f.sort.value = b.SORT || 500; f.text_align.value = b.TEXT_ALIGN || 'center'; f.color.value = b.COLOR || '#ffffff'; if(b.IMAGE) document.getElementById('inpImgUrl').value = b.IMAGE; f.img_scale.value = b.IMG_SCALE || 100; f.img_pos_x.value = b.IMG_POS_X || 50; f.img_pos_y.value = b.IMG_POS_Y || 50; const textColorInput = document.getElementById('inpTextColor'); const textColorWarning = document.getElementById('inpTextColorWarning'); textColorInput.value = b.TEXT_COLOR || '#000000'; if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') { textColorInput.disabled = true; textColorWarning.style.display = 'block'; } else { textColorInput.disabled = false; textColorWarning.style.display = 'none'; } document.getElementById('popup').style.display = 'flex'; }
+function openPopup(slotIndex) {
+    const f = document.getElementById('editForm');
+    f.reset();
+    document.getElementById('slotIndex').value = slotIndex;
+    const b = banners[slotIndex] || {};
+    document.getElementById('popupTitle').innerText = `Настройка блока #${slotIndex}`;
+    if (b.CATEGORY_ID) f.category_id.value = b.CATEGORY_ID;
+    f.title.value = b.TITLE || '';
+    f.subtitle.value = b.SUBTITLE || '';
+    f.link.value = b.LINK || '';
+    f.sort.value = b.SORT || 500;
+    f.text_align.value = b.TEXT_ALIGN || 'center';
+    f.color.value = b.COLOR || '#ffffff';
+    if (b.IMAGE) document.getElementById('inpImgUrl').value = b.IMAGE;
+    f.img_scale.value = b.IMG_SCALE || 100;
+    f.img_pos_x.value = b.IMG_POS_X || 50;
+    f.img_pos_y.value = b.IMG_POS_Y || 50;
+    const textColorInput = document.getElementById('inpTextColor');
+    const textColorWarning = document.getElementById('inpTextColorWarning');
+    textColorInput.value = b.TEXT_COLOR || '#000000';
+    if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') {
+        textColorInput.disabled = true;
+        textColorWarning.style.display = 'block';
+    } else {
+        textColorInput.disabled = false;
+        textColorWarning.style.display = 'none';
+    }
+
+    // Set formatting checkboxes
+    document.getElementById('tb_b').checked = (b.TITLE_BOLD === 'Y');
+    document.getElementById('tb_i').checked = (b.TITLE_ITALIC === 'Y');
+    document.getElementById('tb_u').checked = (b.TITLE_UNDERLINE === 'Y');
+    document.getElementById('sb_b').checked = (b.SUBTITLE_BOLD === 'Y');
+    document.getElementById('sb_i').checked = (b.SUBTITLE_ITALIC === 'Y');
+    document.getElementById('sb_u').checked = (b.SUBTITLE_UNDERLINE === 'Y');
+
+    document.getElementById('popup').style.display = 'flex';
+}
 function closePopup() { document.getElementById('popup').style.display = 'none'; }
 
 const adjuster = { preview: document.getElementById('adjPreview'), scale: document.getElementById('adjScale'), posX: document.getElementById('adjPosX'), posY: document.getElementById('adjPosY'), isDragging: false, startX: 0, startY: 0, initPosX: 50, initPosY: 50 };

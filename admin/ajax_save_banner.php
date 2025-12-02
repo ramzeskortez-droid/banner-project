@@ -52,6 +52,36 @@ try {
             $resp['errors'] = $res->getErrorMessages();
         }
     }
+    if ($action === 'save_mass_format') {
+        $setId = (int)$req->getPost('set_id');
+        $field = $req->getPost('field'); // напр. TITLE_BOLD
+        $val = $req->getPost('value');   // Y или N
+        
+        // Массовое обновление
+        $banners = BannerTable::getList(['filter'=>['SET_ID'=>$setId]])->fetchAll();
+        foreach($banners as $b) {
+            BannerTable::update($b['ID'], [$field => $val]);
+        }
+        $resp['success'] = true;
+    }
+    elseif ($action === 'create_set') {
+        $name = $req->getPost('name');
+        $res = \MyCompany\Banner\BannerSetTable::add([
+            'NAME' => $name,
+            // Дефолтные настройки
+            'TEXT_BG_SHOW' => 'N',
+            'TEXT_BG_COLOR' => '#ffffff',
+            'TEXT_BG_OPACITY' => 90,
+            'USE_GLOBAL_TEXT_COLOR' => 'N',
+            'GLOBAL_TEXT_COLOR' => '#000000'
+        ]);
+        if ($res->isSuccess()) {
+            $resp['success'] = true;
+            $resp['id'] = $res->getId();
+        } else {
+            $resp['errors'] = $res->getErrorMessages();
+        }
+    }
     elseif ($action === 'save_slot') {
         $data = [
             'SET_ID'             => $setId,
@@ -73,6 +103,12 @@ try {
             'IMG_SCALE'          => (int)$req->getPost('img_scale') ?: 100,
             'IMG_POS_X'          => (int)$req->getPost('img_pos_x') ?: 50,
             'IMG_POS_Y'          => (int)$req->getPost('img_pos_y') ?: 50,
+            'TITLE_BOLD' => $req->getPost('title_bold') ?: 'N',
+            'TITLE_ITALIC' => $req->getPost('title_italic') ?: 'N',
+            'TITLE_UNDERLINE' => $req->getPost('title_underline') ?: 'N',
+            'SUBTITLE_BOLD' => $req->getPost('subtitle_bold') ?: 'N',
+            'SUBTITLE_ITALIC' => $req->getPost('subtitle_italic') ?: 'N',
+            'SUBTITLE_UNDERLINE' => $req->getPost('subtitle_underline') ?: 'N',
         ];
         
         $existing = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();

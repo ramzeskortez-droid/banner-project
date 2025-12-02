@@ -56,26 +56,31 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     #preview-popup {
         width: 480px;
         background: #fff;
-        border: 1px solid #bbb;
-        box-shadow: 10px 10px 40px rgba(0,0,0,0.2);
-        z-index: 99999;
+        border: 1px solid #999;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 9999;
         position: absolute;
         display: none;
         border-radius: 8px;
-        padding: 10px;
+        padding: 15px;
         pointer-events: none;
-        height: auto; 
-        min-height: 200px;
-        overflow: hidden; /* Added to contain scaled content */
+    }
+    /* Контейнер, обрезающий высоту отмасштабированного грида */
+    #preview-crop {
+        width: 100%;
+        height: 320px; /* Подгоняем под высоту контента */
+        overflow: hidden;
+        position: relative;
     }
     #preview-grid {
         width: 1420px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
         transform: scale(0.32);
         transform-origin: top left;
-        display: grid; 
-        grid-template-columns: repeat(4, 1fr); 
-        gap: 20px; 
     }
+
     #preview-grid .slot { 
         background-color: #eee; 
         background-size: cover; 
@@ -116,8 +121,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </style>
 
 <div class="admin-header">
-    <h2>Наборы баннеров</h2>
-    <a href="mycompany_banner_set_edit.php?lang=<?=LANG?>" title="Добавить новый набор" class="adm-btn adm-btn-save">Добавить набор</a>
+    <h2>Список созданных баннеров</h2>
+    <button class="adm-btn adm-btn-save" onclick="createSet()">Создать баннер из шаблона</button>
 </div>
 
 <div class="sets-grid">
@@ -137,16 +142,35 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     <?php endforeach; ?>
 </div>
 
-<div id="preview-popup"></div>
+<div id="preview-popup"><div id="preview-crop"></div></div>
 
 <script>
     const setsData = <?=json_encode(array_values($bannersBySet))?>;
     const setsDataById = <?=json_encode($bannersBySet)?>;
     const popup = document.getElementById('preview-popup');
+    const popupCrop = document.getElementById('preview-crop');
+
+    function createSet() {
+        // Можно сделать prompt для имени или авто-имя
+        const name = prompt("Введите название для нового баннера:", "Новый баннер");
+        if(!name) return;
+
+        const fd = new FormData();
+        fd.append('action', 'create_set');
+        fd.append('name', name);
+        fd.append('sessid', '<?=bitrix_sessid()?>');
+
+        fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})
+            .then(r => r.json())
+            .then(res => {
+                if(res.success) window.location = 'mycompany_banner_constructor.php?set_id=' + res.id + '&lang=<?=LANG?>';
+                else alert(res.errors.join('\n'));
+            });
+    }
 
     function showPreview(setId, el) {
         const banners = setsDataById[setId] || [];
-        popup.innerHTML = '';
+        popupCrop.innerHTML = '';
 
         const grid = document.createElement('div');
         grid.id = 'preview-grid';
@@ -188,7 +212,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             }
             grid.appendChild(slot);
         }
-        popup.appendChild(grid);
+        popupCrop.appendChild(grid);
 
         const rect = el.getBoundingClientRect();
         popup.style.display = 'block';

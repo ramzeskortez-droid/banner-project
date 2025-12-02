@@ -35,6 +35,12 @@ class BannerTable extends DataManager
             new IntegerField('IMG_SCALE', ['default_value' => 100]),
             new IntegerField('IMG_POS_X', ['default_value' => 50]),
             new IntegerField('IMG_POS_Y', ['default_value' => 50]),
+            new StringField('TITLE_BOLD', ['default_value' => 'N']),
+            new StringField('TITLE_ITALIC', ['default_value' => 'N']),
+            new StringField('TITLE_UNDERLINE', ['default_value' => 'N']),
+            new StringField('SUBTITLE_BOLD', ['default_value' => 'N']),
+            new StringField('SUBTITLE_ITALIC', ['default_value' => 'N']),
+            new StringField('SUBTITLE_UNDERLINE', ['default_value' => 'N']),
         ];
     }
 }
