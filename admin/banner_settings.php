@@ -173,21 +173,30 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     }
     
     function doCreate() {
-        const name = document.getElementById('newSetName').value;
-        if(!name) return alert('Введите название');
-        const auto = document.getElementById('newSetAuto').checked ? 'Y' : 'N';
+        const btn = document.querySelector('#create-popup .adm-btn-save');
+        const nameInp = document.getElementById('newSetName');
+        
+        if(!nameInp.value) { nameInp.style.border='1px solid red'; return; }
+        
+        // Блокируем интерфейс
+        btn.disabled = true;
+        btn.innerText = 'Создание...';
 
         const fd = new FormData();
         fd.append('action', 'create_set');
-        fd.append('name', name);
-        fd.append('category_mode', auto);
+        fd.append('name', nameInp.value);
+        fd.append('category_mode', document.getElementById('newSetAuto').checked ? 'Y' : 'N');
         fd.append('sessid', '<?=bitrix_sessid()?>');
 
         fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})
             .then(r => r.json())
             .then(res => {
                 if(res.success) window.location = 'mycompany_banner_constructor.php?set_id=' + res.id + '&lang=<?=LANG?>';
-                else alert(res.errors.join('\n'));
+                else { 
+                    alert(res.errors.join('\n')); 
+                    btn.disabled = false; 
+                    btn.innerText = 'Создать'; 
+                }
             });
     }
 

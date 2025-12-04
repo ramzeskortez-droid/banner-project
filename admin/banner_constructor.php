@@ -94,34 +94,22 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .adjust-text-overlay { pointer-events: none; }
     .adjust-controls { padding: 20px; }
 
-    /* Скрываем чекбоксы */
-    .fmt-btn-real { display: none; }
-
-    /* Общий стиль кнопок форматирования */
-    .fmt-icon {
-        display: inline-flex; align-items: center; justify-content: center;
-        border: 1px solid #ccc; background: #f0f0f0; cursor: pointer;
-        color: #333; transition: all 0.2s;
-    }
-    /* Активное состояние - Зеленый */
-    .fmt-btn-real:checked + .fmt-icon, 
-    .fmt-icon.active { /* Класс active для глобальных кнопок */
-        background: #4caf50; color: #fff; border-color: #4caf50;
-    }
-
-    /* Глобальные кнопки (в верхней панели) - побольше */
-    .global-format .fmt-icon {
-        width: 36px; height: 36px; font-size: 16px; margin-right: -1px;
-    }
-    .global-format .fmt-icon:first-of-type { border-radius: 4px 0 0 4px; }
-    .global-format .fmt-icon:last-of-type { border-radius: 0 4px 4px 0; }
-
-    /* Локальные кнопки (в попапе) - МАЛЕНЬКИЕ */
-    .local-fmt .fmt-icon {
-        width: 26px; height: 26px; font-size: 13px; margin-right: -1px;
-    }
-    .local-fmt .fmt-icon:first-of-type { border-radius: 3px 0 0 3px; }
-    .local-fmt .fmt-icon:last-of-type { border-radius: 0 3px 3px 0; }
+.fmt-row { display: inline-flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; vertical-align: middle; }
+.fmt-btn-real { display: none; }
+.fmt-icon {
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    background: #fff; cursor: pointer; border-right: 1px solid #eee; color: #333;
+    font-family: serif; font-size: 14px; font-weight: normal; transition: 0.2s;
+}
+.fmt-icon:last-child { border-right: none; }
+.fmt-icon:hover { background: #f5f5f5; }
+/* Активное состояние - ЗЕЛЕНЫЙ */
+.fmt-btn-real:checked + .fmt-icon,
+.fmt-icon.active {
+    background: #4caf50; color: #fff; border-color: #4caf50;
+}
+/* Маленькие кнопки в попапе */
+.local-fmt .fmt-icon { width: 24px; height: 24px; font-size: 12px; }
 </style>
 
 <div class="construct-wrap">
@@ -137,29 +125,40 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             <span>%</span>
 
             <div class="sep" style="margin:0 15px; border-left:1px solid #ddd; height:20px;"></div>
-            
-            <label><input type="checkbox" id="globalTextColorShow" onchange="saveGlobalSettings()"> Единый цвет текста</label>
-            <input type="color" id="globalTextColor" onchange="saveGlobalSettings()" style="margin-left:5px;" value="#000000">
-
-            <div class="sep" style="margin:0 15px; border-left:1px solid #ddd; height:20px;"></div>
 
             <label><input type="checkbox" id="globalCatMode" onchange="saveGlobalSettings()"> Режим категорий (Авто)</label>
         </div>
         <div class="settings-group global-format" style="background:#fff8e1; border-color:#ffe0b2; margin-top: 15px;">
-            <div class="group-title" style="background:#ffecb3; color:#ef6c00;">Форматирование текста (для всех)</div>
-            <div class="form-row flex-center" style="gap:10px; padding:10px 20px; display: flex; align-items: center;">
-                <b>Заголовки:</b>
-                <div style="display:flex; margin-left: 5px;">
-                    <span class="fmt-icon" style="font-weight:bold" onclick="massFormat('TITLE_BOLD', 'Y')">B</span>
-                    <span class="fmt-icon" style="font-style:italic" onclick="massFormat('TITLE_ITALIC', 'Y')">I</span>
-                    <span class="fmt-icon" style="text-decoration:underline" onclick="massFormat('TITLE_UNDERLINE', 'Y')">U</span>
+            <div class="group-title" style="background:#ffecb3; color:#ef6c00; padding:10px 15px;">Быстрое редактирование (Ко всем)</div>
+            <div class="form-row flex-center" style="gap:20px; padding:10px 15px; display: flex; align-items: center;">
+                
+                <!-- Цвет текста -->
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label>Цвет текста:</label>
+                    <input type="color" id="massColorPicker" value="#000000" style="height:30px; width:40px; padding:0; border:none;">
+                    <button type="button" class="adm-btn" onclick="applyMassColor()">Применить ко всем</button>
                 </div>
-                <div class="sep" style="margin: 0 15px;"></div>
-                <b>Анонсы:</b>
-                 <div style="display:flex; margin-left: 5px;">
-                    <span class="fmt-icon" style="font-weight:bold" onclick="massFormat('SUBTITLE_BOLD', 'Y')">B</span>
-                    <span class="fmt-icon" style="font-style:italic" onclick="massFormat('SUBTITLE_ITALIC', 'Y')">I</span>
-                    <span class="fmt-icon" style="text-decoration:underline" onclick="massFormat('SUBTITLE_UNDERLINE', 'Y')">U</span>
+
+                <div class="sep" style="width:1px; height:20px; background:#ddd;"></div>
+
+                <!-- Кнопки Заголовков -->
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <b>Заголовки:</b>
+                    <div class="fmt-row">
+                        <div class="fmt-icon" id="btn_GB_TB" onclick="toggleMass('TITLE_BOLD')">B</div>
+                        <div class="fmt-icon" id="btn_GB_TI" onclick="toggleMass('TITLE_ITALIC')" style="font-style:italic">I</div>
+                        <div class="fmt-icon" id="btn_GB_TU" onclick="toggleMass('TITLE_UNDERLINE')" style="text-decoration:underline">U</div>
+                    </div>
+                </div>
+                
+                <!-- Кнопки Анонсов -->
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <b>Анонсы:</b>
+                    <div class="fmt-row">
+                        <div class="fmt-icon" id="btn_GB_SB" onclick="toggleMass('SUBTITLE_BOLD')">B</div>
+                        <div class="fmt-icon" id="btn_GB_SI" onclick="toggleMass('SUBTITLE_ITALIC')" style="font-style:italic">I</div>
+                        <div class="fmt-icon" id="btn_GB_SU" onclick="toggleMass('SUBTITLE_UNDERLINE')" style="text-decoration:underline">U</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -183,8 +182,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                                 <label style="margin:0">Заголовок</label>
-                                <div class="local-fmt">
-                                    <label><input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
+                                <div class="fmt-row local-fmt">
+                                    <label><input type="checkbox" id="tb_b" name="title_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon">B</span></label>
                                     <label><input type="checkbox" id="tb_i" name="title_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
                                     <label><input type="checkbox" id="tb_u" name="title_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
                                 </div>
@@ -194,8 +193,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                                 <label style="margin:0">Анонс</label>
-                                <div class="local-fmt">
-                                    <label><input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-weight:bold">B</span></label>
+                                <div class="fmt-row local-fmt">
+                                    <label><input type="checkbox" id="sb_b" name="subtitle_bold" value="Y" class="fmt-btn-real"><span class="fmt-icon">B</span></label>
                                     <label><input type="checkbox" id="sb_i" name="subtitle_italic" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="font-style:italic">I</span></label>
                                     <label><input type="checkbox" id="sb_u" name="subtitle_underline" value="Y" class="fmt-btn-real"><span class="fmt-icon" style="text-decoration:underline">U</span></label>
                                 </div>
@@ -283,8 +282,6 @@ function saveGlobalSettings() {
     data.append('color', document.getElementById('globalBgColor').value);
     data.append('opacity', document.getElementById('globalBgOp').value);
     
-    data.append('use_global_text_color', document.getElementById('globalTextColorShow').checked ? 'Y' : 'N');
-    data.append('global_text_color', document.getElementById('globalTextColor').value);
     data.append('category_mode', document.getElementById('globalCatMode').checked ? 'Y' : 'N');
 
     fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:data})
@@ -293,6 +290,7 @@ function saveGlobalSettings() {
             if(d.success) {
                 globalSettings = d.data;
                 render();
+                initGlobalState();
             } else {
                 alert('Ошибка: ' + (d.errors ? d.errors.join('\n') : 'Unknown error'));
             }
@@ -300,19 +298,42 @@ function saveGlobalSettings() {
 }
 
 
-function massFormat(field, val) { // val передаем 'Y' или 'N'
+function applyMassColor() {
+    const c = document.getElementById('massColorPicker').value;
+    const fd = new FormData();
+    fd.append('action', 'save_mass_color');
+    fd.append('set_id', '<?=$setId?>');
+    fd.append('color', c);
+    fd.append('sessid', '<?=bitrix_sessid()?>');
+    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}).then(r=>r.json()).then(d=>{
+        if(d.success) {
+            Object.values(banners).forEach(b => b.TEXT_COLOR = c);
+            render();
+            initGlobalState();
+        }
+    });
+}
+
+function toggleMass(field) {
+    const btn = event.currentTarget;
+    // Если кнопка УЖЕ активна (зеленая) -> значит хотим выключить всем (N)
+    // Если не активна -> включаем всем (Y)
+    const newVal = btn.classList.contains('active') ? 'N' : 'Y';
+
     const fd = new FormData();
     fd.append('action', 'save_mass_format');
     fd.append('set_id', '<?=$setId?>');
     fd.append('field', field);
-    fd.append('value', val); // Всегда ставим то, что нажали
+    fd.append('value', newVal);
     fd.append('sessid', '<?=bitrix_sessid()?>');
-    
+
     fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}).then(r=>r.json()).then(d=>{
         if(d.success) {
-            // Обновляем локально
-            Object.values(banners).forEach(b => b[field] = val);
+            Object.values(banners).forEach(b => b[field] = newVal);
+            // Обновляем визуал кнопки
+            if(newVal === 'Y') btn.classList.add('active'); else btn.classList.remove('active');
             render();
+            initGlobalState();
         }
     });
 }
@@ -329,11 +350,7 @@ function render() {
             
             const content = document.createElement('div');
             content.className = `slot-content text-${b.TEXT_ALIGN || 'center'}`;
-            let textColor = b.TEXT_COLOR || '#000000';
-            if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') {
-                textColor = globalSettings.GLOBAL_TEXT_COLOR;
-            }
-            content.style.color = textColor;
+            content.style.color = b.TEXT_COLOR || '#000000';
             
             const wrapper = document.createElement('div');
             wrapper.className = 'b-text-wrapper';
@@ -388,13 +405,8 @@ function openPopup(slotIndex) {
     const textColorInput = document.getElementById('inpTextColor');
     const textColorWarning = document.getElementById('inpTextColorWarning');
     textColorInput.value = b.TEXT_COLOR || '#000000';
-    if (globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y') {
-        textColorInput.disabled = true;
-        textColorWarning.style.display = 'block';
-    } else {
-        textColorInput.disabled = false;
-        textColorWarning.style.display = 'none';
-    }
+    textColorInput.disabled = false;
+    textColorWarning.style.display = 'none';
 
     // Set formatting checkboxes
     document.getElementById('tb_b').checked = (b.TITLE_BOLD === 'Y');
@@ -478,15 +490,35 @@ function initGlobalSettings() {
     document.getElementById('globalBgOp').value = globalSettings.TEXT_BG_OPACITY || 90;
     document.getElementById('globalBgOpNum').value = globalSettings.TEXT_BG_OPACITY || 90;
     
-    document.getElementById('globalTextColorShow').checked = globalSettings.USE_GLOBAL_TEXT_COLOR === 'Y';
-    document.getElementById('globalTextColor').value = globalSettings.GLOBAL_TEXT_COLOR || '#000000';
+    
     document.getElementById('globalCatMode').checked = globalSettings.CATEGORY_MODE === 'Y';
 }
 
+function initGlobalState() {
+    // Check first banner for active state to set global button visuals
+    const b = banners[1]; // Using banner in the first slot
+    if (b) {
+        // Helper to toggle class
+        const tgl = (id, active) => {
+            const el = document.getElementById(id);
+            if (el) {
+                if(active) el.classList.add('active'); else el.classList.remove('active');
+            }
+        };
+        tgl('btn_GB_TB', b.TITLE_BOLD === 'Y');
+        tgl('btn_GB_TI', b.TITLE_ITALIC === 'Y');
+        tgl('btn_GB_TU', b.TITLE_UNDERLINE === 'Y');
+        tgl('btn_GB_SB', b.SUBTITLE_BOLD === 'Y');
+        tgl('btn_GB_SI', b.SUBTITLE_ITALIC === 'Y');
+        tgl('btn_GB_SU', b.SUBTITLE_UNDERLINE === 'Y');
+    }
+}
+
 document.getElementById('catSelect').addEventListener('change', function() { const sec = sections[this.value]; if(sec) { document.getElementById('inpTitle').value = sec.title; document.getElementById('inpSubtitle').value = sec.subtitle; document.getElementById('inpLink').value = sec.link; if(sec.image) document.getElementById('inpImgUrl').value = sec.image; } });
-document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); closePopup(); } else { alert(data.errors.join('\n')); } };
+document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); initGlobalState(); closePopup(); } else { alert(data.errors.join('\n')); } };
 
 initGlobalSettings();
 render();
+initGlobalState();
 </script>
 <?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>

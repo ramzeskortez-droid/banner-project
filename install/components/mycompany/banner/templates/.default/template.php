@@ -29,9 +29,6 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
     }
 
     $textColor = $banner['TEXT_COLOR'] ?: '#000000';
-    if (($set['USE_GLOBAL_TEXT_COLOR'] ?? 'N') == 'Y') {
-        $textColor = $set['GLOBAL_TEXT_COLOR'];
-    }
     $textAlign = $banner['TEXT_ALIGN'] ?: 'center';
     
     $titleStyle = "font-size:" . ($banner['TITLE_FONT_SIZE'] ?: '20px') . ";";

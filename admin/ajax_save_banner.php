@@ -65,6 +65,15 @@ try {
         }
         $resp['success'] = true;
     }
+    if ($action === 'save_mass_color') {
+        $setId = (int)$req->getPost('set_id');
+        $color = $req->getPost('color');
+        $banners = \MyCompany\Banner\BannerTable::getList(['filter'=>['SET_ID'=>$setId]])->fetchAll();
+        foreach($banners as $b) {
+            \MyCompany\Banner\BannerTable::update($b['ID'], ['TEXT_COLOR' => $color]);
+        }
+        $resp['success'] = true;
+    }
     elseif ($action === 'create_set') {
         $name = trim($req->getPost('name'));
         $catMode = $req->getPost('category_mode') === 'Y' ? 'Y' : 'N';
@@ -85,33 +94,16 @@ try {
             // --- УМНОЕ ЗАПОЛНЕНИЕ ---
             $cats = [];
             if ($catMode === 'Y' && \Bitrix\Main\Loader::includeModule('iblock')) {
-                // 1. Ищем приоритетные (с описанием)
-                $rsPriority = \CIBlockSection::GetList(
-                    ['RAND'=>'ASC'], 
-                    ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', '!DESCRIPTION'=>false], 
-                    false, 
-                    ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], 
-                    ['nTopCount'=>8]
-                );
-                while($r = $rsPriority->GetNext()) $cats[$r['ID']] = $r;
+                // Берем 50 разделов
+                $rs = \CIBlockSection::GetList(['RAND'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', 'IBLOCK_ACTIVE'=>'Y'], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], ['nTopCount'=>50]);
+                $good = []; $bad = [];
                 
-                // 2. Если не хватает до 8, добираем любые
-                $needed = 8 - count($cats);
-                if ($needed > 0) {
-                    $filter = ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y'];
-                    if(!empty($cats)) $filter['!ID'] = array_keys($cats); // Исключаем уже найденные
-                    
-                    $rsAny = \CIBlockSection::GetList(
-                        ['RAND'=>'ASC'], 
-                        $filter, 
-                        false, 
-                        ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'], 
-                        ['nTopCount'=>$needed]
-                    );
-                    while($r = $rsAny->GetNext()) $cats[] = $r;
+                while($r = $rs->GetNext()) {
+                    if(strlen(trim(strip_tags($r['DESCRIPTION']))) > 5) $good[] = $r;
+                    else $bad[] = $r;
                 }
-                // Сброс ключей массива
-                $cats = array_values($cats);
+                // Приоритет хорошим
+                $cats = array_merge($good, $bad);
             }
             
             // 3. Создаем 8 слотов
