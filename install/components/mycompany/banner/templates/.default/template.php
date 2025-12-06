@@ -1,6 +1,8 @@
 <?php if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 /** @var array $arResult */
 
+use Bitrix\Main\Config\Option; // Добавляем use для Option
+
 $set = $arResult['SET'] ?? [];
 $globalBg = "";
 if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
@@ -11,6 +13,11 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
     else { $r=hexdec(substr($hex,0,2)); $g=hexdec(substr($hex,2,2)); $b=hexdec(substr($hex,4,2)); }
     $globalBg = "background-color: rgba($r, $g, $b, ".($op/100).");";
 }
+
+// Получение глобальных настроек размера шрифтов
+$module_id = 'mycompany.banner';
+$gTitle = Option::get($module_id, "global_title_size", "24");
+$gText  = Option::get($module_id, "global_text_size", "16");
 ?>
 <div class="my-banner-grid">
 <?php foreach($arResult['BANNERS'] as $i => $banner):
@@ -31,12 +38,16 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
     $textColor = $banner['TEXT_COLOR'] ?: '#000000';
     $textAlign = $banner['TEXT_ALIGN'] ?: 'center';
     
-    $titleStyle = "font-size:" . ($banner['TITLE_FONT_SIZE'] ?: '20px') . ";";
+    // Логика приоритета для размера заголовка
+    $titleSize = !empty($banner['TITLE_FONT_SIZE']) ? $banner['TITLE_FONT_SIZE'] : $gTitle;
+    $titleStyle = "font-size:" . $titleSize . "px;";
     $titleStyle .= ($banner['TITLE_BOLD'] == 'Y') ? "font-weight:bold;" : "font-weight:normal;";
     $titleStyle .= ($banner['TITLE_ITALIC'] == 'Y') ? "font-style:italic;" : "";
     $titleStyle .= ($banner['TITLE_UNDERLINE'] == 'Y') ? "text-decoration:underline;" : "";
 
-    $subtitleStyle = "font-size:" . ($banner['SUBTITLE_FONT_SIZE'] ?: '14px') . ";";
+    // Логика приоритета для размера анонса
+    $textSize  = !empty($banner['SUBTITLE_FONT_SIZE']) ? $banner['SUBTITLE_FONT_SIZE'] : $gText;
+    $subtitleStyle = "font-size:" . $textSize . "px;";
     if ($banner['SUBTITLE_BOLD'] == 'Y') $subtitleStyle .= "font-weight:bold;";
     if ($banner['SUBTITLE_ITALIC'] == 'Y') $subtitleStyle .= "font-style:italic;";
     if ($banner['SUBTITLE_UNDERLINE'] == 'Y') $subtitleStyle .= "text-decoration:underline;";

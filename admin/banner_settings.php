@@ -2,11 +2,26 @@
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 
 use Bitrix\Main\Loader;
+use Bitrix\Main\Config\Option;
 use MyCompany\Banner\BannerSetTable;
 use MyCompany\Banner\BannerTable;
 
 Loader::includeModule("mycompany.banner");
 $APPLICATION->SetTitle("Наборы баннеров");
+
+$module_id = 'mycompany.banner';
+$request = Application::getInstance()->getContext()->getRequest();
+
+// --- Обработка сохранения глобальных настроек шрифтов ---
+if ($request->isPost() && $request->getPost('action') === 'save_global_font_settings' && check_bitrix_sessid()) {
+    Option::set($module_id, "global_title_size", (int)$request->getPost('global_title_size'));
+    Option::set($module_id, "global_text_size", (int)$request->getPost('global_text_size'));
+    LocalRedirect($APPLICATION->GetCurPageParam("", array("lang", "action", "save", "sessid")));
+}
+
+// --- Получение текущих значений глобальных настроек шрифтов ---
+$globalTitleSize = Option::get($module_id, "global_title_size", "24");
+$globalTextSize  = Option::get($module_id, "global_text_size", "16");
 
 // --- Data Fetching ---
 $setsRaw = BannerSetTable::getList(['order' => ['ID' => 'DESC']]);
@@ -118,12 +133,46 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     #preview-grid .text-right { align-items: flex-end; text-align: right; }
     #preview-grid .b-text-wrapper { padding: 10px 15px; border-radius: 4px; }
     #preview-grid .b-title { font-weight: bold; }
+    .settings-group { padding: 0; border: 1px solid #bbdefb; overflow: hidden; margin-bottom: 20px; border-radius: 6px; background: #fff; }
+    .group-title { background: #e3f2fd; color: #1565c0; padding: 15px 20px; font-weight: bold; border-bottom: 1px solid #90caf9; margin: 0 0 15px 0; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+    .group-content { padding: 20px; }
+    .adm-detail-content-cell-l { font-weight: bold; }
 </style>
 
 <div class="admin-header">
     <h2>Список созданных баннеров</h2>
-    <button class="adm-btn adm-btn-save" onclick="createSet()">Создать баннер из шаблона</button>
 </div>
+
+<form action="<?=$APPLICATION->GetCurPage()?>?lang=<?=LANG?>" method="POST">
+    <?=bitrix_sessid_post()?>
+    <input type="hidden" name="action" value="save_global_font_settings">
+    <div class="settings-group">
+        <div class="group-title">Глобальные настройки шрифтов для всех баннеров</div>
+        <div class="group-content">
+            <div class="adm-list-table-wrap adm-list-table-without-header">
+                <table class="adm-list-table">
+                    <tr>
+                        <td width="50%" class="adm-detail-content-cell-l">Размер заголовка (px):</td>
+                        <td width="50%" class="adm-detail-content-cell-r">
+                            <input type="number" name="global_title_size" value="<?=$globalTitleSize?>" min="10" max="100" class="adm-detail-content-cell-r">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="50%" class="adm-detail-content-cell-l">Размер анонса (px):</td>
+                        <td width="50%" class="adm-detail-content-cell-r">
+                            <input type="number" name="global_text_size" value="<?=$globalTextSize?>" min="10" max="100" class="adm-detail-content-cell-r">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="adm-detail-content-btns">
+                <input type="submit" name="save" value="Сохранить" title="Сохранить" class="adm-btn-save">
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="admin-header">
 
 <div class="sets-grid">
     <?php foreach($sets as $set):

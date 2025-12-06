@@ -261,6 +261,14 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                             <input type="color" name="text_color" id="inpTextColor" value="#000000" style="width:100%; height:38px;">
                             <small id="inpTextColorWarning" style="color: #888; display: none; margin-top: 5px;">(Включен единый цвет)</small>
                         </div>
+                        <div class="form-row">
+                            <label for="inpTitleSize">Размер заголовка (px)</label>
+                            <input type="number" name="title_font_size" id="inpTitleSize" class="form-control" min="10" max="100">
+                        </div>
+                        <div class="form-row">
+                            <label for="inpTextSize">Размер анонса (px)</label>
+                            <input type="number" name="subtitle_font_size" id="inpTextSize" class="form-control" min="10" max="100">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -424,13 +432,59 @@ function render() {
             wrapper.innerHTML = innerHTML;
 
             content.appendChild(wrapper);
-el.appendChild(content);
+            el.appendChild(content);
+
+            // Добавляем ID и кнопку удаления
+            const infoBar = document.createElement('div');
+            infoBar.style.cssText = "position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 10; color: #fff; text-shadow: 0 0 3px rgba(0,0,0,0.5);";
+            infoBar.innerHTML = `
+                <span>ID: ${b.ID}</span>
+                <span class="delete-banner-btn" onclick="deleteBanner(${b.ID}, this)" style="cursor: pointer; color: red; font-weight: bold; font-size: 1.2em;">&times;</span>
+            `;
+            el.appendChild(infoBar);
+
             el.onclick = () => openPopup(b.SLOT_INDEX);
         } else {
             el.innerHTML = '<div class="slot-placeholder">Слот '+(i+1)+'<br><small>Настроить</small></div>';
             el.onclick = () => openPopupNew(i);
         }
         grid.appendChild(el);
+    }
+}
+
+// Новая функция для удаления баннера
+function deleteBanner(id, btn) {
+    if (confirm('Вы уверены, что хотите удалить этот баннер?')) {
+        const data = new FormData();
+        data.append('action', 'delete');
+        data.append('banner_id', id);
+        data.append('sessid', '<?=bitrix_sessid()?>');
+
+        fetch('ajax_save_banner.php', { method: 'POST', body: data })
+            .then(res => res.json())
+            .then(d => {
+                if (d.success) {
+                    // Удаляем DOM-элемент карточки
+                    const card = btn.closest('.slot');
+                    if (card) {
+                        card.remove();
+                        // Удаляем из banners объекта
+                        for (const key in banners) {
+                            if (banners[key].ID === id) {
+                                delete banners[key];
+                                break;
+                            }
+                        }
+                        render(); // Перерендерим сетку, чтобы заполнились пустые слоты
+                    }
+                } else {
+                    alert('Ошибка удаления баннера: ' + (d.error ? d.error.join('\n') : 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при удалении баннера.');
+            });
     }
 }
 function findFreeSlotIndex() { for(let i=1; i<=100; i++) { if (!banners[i]) return i; } return 101; }
@@ -517,6 +571,10 @@ function openPopup(slotIndex) {
     textColorInput.value = b.TEXT_COLOR || '#000000';
     textColorInput.disabled = false;
     textColorWarning.style.display = 'none';
+
+    // Новые поля для размера шрифта
+    document.getElementById('inpTitleSize').value = b.TITLE_FONT_SIZE || '';
+    document.getElementById('inpTextSize').value = b.SUBTITLE_FONT_SIZE || '';
 
     // Set formatting checkboxes
     document.getElementById('tb_b').checked = (b.TITLE_BOLD === 'Y');

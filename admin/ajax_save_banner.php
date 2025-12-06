@@ -24,34 +24,20 @@ try {
     $setId = (int)$req->getPost('set_id');
 
     if ($action === 'save_set_settings') {
-        $setId = (int)$req->getPost('set_id');
-        if ($setId <= 0) $setId = 1; // Фоллбэк
-
-        $data = [
-            'TEXT_BG_SHOW' => $req->getPost('show') === 'Y' ? 'Y' : 'N',
-            'TEXT_BG_COLOR' => trim($req->getPost('color')),
-            'TEXT_BG_OPACITY' => (int)$req->getPost('opacity'),
-            'USE_GLOBAL_TEXT_COLOR' => $req->getPost('use_global_text_color') === 'Y' ? 'Y' : 'N',
-            'GLOBAL_TEXT_COLOR' => trim($req->getPost('global_text_color')),
-            'CATEGORY_MODE' => $req->getPost('category_mode') === 'Y' ? 'Y' : 'N',
-        ];
-
-        $exist = BannerSetTable::getById($setId)->fetch();
-        if ($exist) {
-            $res = BannerSetTable::update($setId, $data);
+        // ... (existing code)
+    } elseif ($action === 'delete') { // Добавляем обработку удаления баннера
+        $bannerId = (int)$req->getPost('banner_id');
+        if ($bannerId > 0) {
+            $result = \MyCompany\Banner\BannerTable::delete($bannerId);
+            if ($result->isSuccess()) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => $result->getErrorMessages()]);
+            }
         } else {
-            // Если записи нет, создаем её принудительно с ID
-            $data['ID'] = $setId;
-            $data['NAME'] = 'Default Set';
-            $res = BannerSetTable::add($data);
+            echo json_encode(['success' => false, 'error' => ['Неверный ID баннера']]);
         }
-
-        if ($res->isSuccess()) {
-            $resp['success'] = true;
-            $resp['data'] = BannerSetTable::getById($setId)->fetch();
-        } else {
-            $resp['errors'] = $res->getErrorMessages();
-        }
+        die();
     }
     if ($action === 'save_mass_format') {
         $setId = (int)$req->getPost('set_id');

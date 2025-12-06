@@ -37,3 +37,13 @@
 
 .b-title { font-weight: normal; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
 .b-sub { opacity: 0.95; line-height: 1.4; }
+
+/* Styles for overflow fix */
+.banner-content-inner, .banner-item-text, .banner-features-block {
+    max-width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word; /* To break long words */
+}
+.banner-container-row {
+    flex-wrap: wrap; /* Allow wrapping if not enough space */
+}
