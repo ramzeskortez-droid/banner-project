@@ -74,6 +74,27 @@ try {
         }
         $resp['success'] = true;
     }
+    elseif ($action === 'save_mass_font_size') {
+        $setId = (int)$req->getPost('set_id');
+        $titleSize = $req->getPost('title_size');
+        $subtitleSize = $req->getPost('subtitle_size');
+
+        $updateData = [];
+        if (is_numeric($titleSize) && $titleSize > 0) {
+            $updateData['TITLE_FONT_SIZE'] = $titleSize . 'px';
+        }
+        if (is_numeric($subtitleSize) && $subtitleSize > 0) {
+            $updateData['SUBTITLE_FONT_SIZE'] = $subtitleSize . 'px';
+        }
+
+        if (!empty($updateData)) {
+            $banners = BannerTable::getList(['filter' => ['SET_ID' => $setId], 'select' => ['ID']])->fetchAll();
+            foreach ($banners as $banner) {
+                BannerTable::update($banner['ID'], $updateData);
+            }
+        }
+        $resp['success'] = true;
+    }
     elseif ($action === 'create_set') {
         $name = trim($req->getPost('name'));
         $catMode = $req->getPost('category_mode') === 'Y' ? 'Y' : 'N';

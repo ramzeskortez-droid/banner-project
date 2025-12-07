@@ -10,14 +10,38 @@ Loader::includeModule("iblock");
 $setId = (int)($_REQUEST['set_id'] ?? 1);
 $set = BannerSetTable::getById($setId)->fetch();
 
-$sections = [];
+$iblocks = [];
+$sectionsByIblock = [];
+
 if(Loader::includeModule("iblock")) {
-    $res = CIBlockSection::GetList(['LEFT_MARGIN'=>'ASC'], ['ACTIVE'=>'Y','IBLOCK_ACTIVE'=>'Y','GLOBAL_ACTIVE'=>'Y'], false, ['ID','NAME','DEPTH_LEVEL','SECTION_PAGE_URL','DESCRIPTION', 'PICTURE']);
-    while($sec = $res->GetNext()) {
-        $sections[$sec['ID']] = [
-            'id' => $sec['ID'], 'title' => $sec['NAME'], 'link' => $sec['SECTION_PAGE_URL'],
-            'subtitle' => $sec['DESCRIPTION'] ? strip_tags($sec['DESCRIPTION']) : '',
-            'image' => $sec['PICTURE'] ? \CFile::GetPath($sec['PICTURE']) : ''
+    // 1. Получаем Инфоблоки
+    $ibRes = \CIBlock::GetList(['SORT'=>'ASC'], ['ACTIVE'=>'Y']);
+    while($ib = $ibRes->Fetch()) {
+        $iblocks[$ib['ID']] = $ib['NAME'];
+    }
+
+    // 2. Получаем Разделы
+    $secRes = \CIBlockSection::GetList(
+        ['LEFT_MARGIN'=>'ASC'], 
+        ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y'], 
+        false, 
+        ['ID','NAME','DEPTH_LEVEL','IBLOCK_ID','SECTION_PAGE_URL','DESCRIPTION', 'PICTURE', 'IBLOCK_SECTION_ID']
+    );
+    
+    while($sec = $secRes->GetNext()) {
+        $sid = $sec['IBLOCK_ID'];
+        // Сохраняем данные для JS
+        $sectionsByIblock[$sid][] = [
+            'id' => $sec['ID'],
+            'name' => $sec['NAME'],
+            'depth' => (int)$sec['DEPTH_LEVEL'],
+            'parent' => $sec['IBLOCK_SECTION_ID'],
+            'data' => [ // Данные для автозаполнения
+                'title' => $sec['NAME'],
+                'link' => $sec['SECTION_PAGE_URL'],
+                'subtitle' => $sec['DESCRIPTION'] ? strip_tags($sec['DESCRIPTION']) : '',
+                'image' => $sec['PICTURE'] ? \CFile::GetPath($sec['PICTURE']) : ''
+            ]
         ];
     }
 }
@@ -141,6 +165,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
                 <div class="sep" style="width:1px; height:20px; background:#ddd;"></div>
 
+                <!-- Размер шрифта -->
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label>Размер шрифта:</label>
+                    <input type="number" id="massTitleSize" class="form-control" placeholder="Заголовок px" style="width: 120px; height: 30px;">
+                    <input type="number" id="massSubtitleSize" class="form-control" placeholder="Анонс px" style="width: 120px; height: 30px;">
+                    <button type="button" class="adm-btn" onclick="applyMassFontSize()">Применить</button>
+                </div>
+
+                <div class="sep" style="width:1px; height:20px; background:#ddd;"></div>
+
                 <!-- Кнопки Заголовков -->
                 <div style="display:flex; align-items:center; gap:5px;">
                     <b>Заголовки:</b>
@@ -178,7 +212,22 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             <div class="left-col">
                 <div class="settings-group"><div class="group-title">Основные данные</div>
                     <div class="group-content">
-                        <div class="form-row"><label>Заполнить из категории</label><select id="catSelect" name="category_id" class="form-control"><option value="0">-- Не выбрано --</option><?php foreach($sections as $id => $s): ?><option value="<?=$id?>"><?=$s['title']?></option><?php endforeach; ?></select></div>
+                        <div class="form-row" style="background:#f0f8ff; padding:15px; border-radius:6px; border:1px solid #cce5ff;">
+    <label style="color:#004085;">Шаг 1: Выберите Инфоблок</label>
+    <select id="iblockSelect" class="form-control" onchange="renderCategories(this.value)">
+        <option value="0">-- Не выбрано --</option>
+        <?php foreach($iblocks as $id => $name): ?>
+            <option value="<?=$id?>"><?=htmlspecialcharsbx($name)?></option>
+        <?php endforeach; ?>
+    </select>
+    
+    <div style="height:10px;"></div>
+    
+    <label style="color:#004085;">Шаг 2: Выберите Раздел</label>
+    <select id="catSelect" name="category_id" class="form-control" disabled>
+        <option value="0">-- Сначала выберите инфоблок --</option>
+    </select>
+</div>
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                                 <label style="margin:0">Заголовок</label>
@@ -244,7 +293,18 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </div></div>
 
 <script>
-let banners = <?=CUtil::PhpToJSObject($banners)?>, globalSettings = <?=CUtil::PhpToJSObject($set)?>, sections = <?=CUtil::PhpToJSObject($sections)?>;
+let banners = <?=CUtil::PhpToJSObject($banners)?>, globalSettings = <?=CUtil::PhpToJSObject($set)?>;
+const sectionsData = <?=CUtil::PhpToJSObject($sectionsByIblock)?>;
+// Глобальный справочник для быстрого доступа к данным по ID раздела
+let allSectionsFlat = {}; 
+
+// Инициализация плоского списка (для автозаполнения при открытии)
+for(let ibId in sectionsData) {
+    sectionsData[ibId].forEach(s => {
+        allSectionsFlat[s.id] = s.data;
+    });
+}
+
 const grid = document.getElementById('grid');
 
 function hexToRgb(hex, opacity) { let r=0,g=0,b=0; if(!hex) hex='#ffffff'; if (hex.length==4){r=parseInt(hex[1]+hex[1],16);g=parseInt(hex[2]+hex[2],16);b=parseInt(hex[3]+hex[3],16);}else if(hex.length==7){r=parseInt(hex.substring(1,3),16);g=parseInt(hex.substring(3,5),16);b=parseInt(hex.substring(5,7),16);} return `rgba(${r},${g},${b},${opacity/100})`; }
@@ -338,6 +398,50 @@ function toggleMass(field) {
     });
 }
 
+function applyMassFontSize() {
+    const titleSize = document.getElementById('massTitleSize').value;
+    const subtitleSize = document.getElementById('massSubtitleSize').value;
+
+    if (!titleSize && !subtitleSize) {
+        alert('Введите хотя бы один размер шрифта.');
+        return;
+    }
+
+    const fd = new FormData();
+    fd.append('action', 'save_mass_font_size');
+    fd.append('set_id', '<?=$setId?>');
+    fd.append('sessid', '<?=bitrix_sessid()?>');
+    if (titleSize) {
+        fd.append('title_size', titleSize);
+    }
+    if (subtitleSize) {
+        fd.append('subtitle_size', subtitleSize);
+    }
+
+    fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(d => {
+        if(d.success) {
+            // Update local banners object
+            Object.values(banners).forEach(b => {
+                if (titleSize) {
+                    b.TITLE_FONT_SIZE = titleSize + 'px';
+                }
+                if (subtitleSize) {
+                    b.SUBTITLE_FONT_SIZE = subtitleSize + 'px';
+                }
+            });
+            // Re-render the grid
+            render();
+            // Maybe clear inputs
+            document.getElementById('massTitleSize').value = '';
+            document.getElementById('massSubtitleSize').value = '';
+        } else {
+             alert('Ошибка: ' + (d.errors ? d.errors.join('\\n') : 'Unknown error'));
+        }
+    });
+}
+
 function render() {
     grid.innerHTML = '';
     const list = Object.values(banners).sort((a,b) => (parseInt(a.SORT)||500) - (parseInt(b.SORT)||500));
@@ -384,14 +488,74 @@ el.appendChild(content);
     }
 }
 function findFreeSlotIndex() { for(let i=1; i<=100; i++) { if (!banners[i]) return i; } return 101; }
-function openPopupNew(visualIndex) { const f = document.getElementById('editForm'); f.reset(); document.getElementById('slotIndex').value = findFreeSlotIndex(); const sort = (visualIndex + 1) * 10; f.sort.value = sort; f.text_align.value = 'center'; document.getElementById('popupTitle').innerText = `Новый блок (Сортировка: ${sort})`; document.getElementById('popup').style.display = 'flex'; }
+
+function renderCategories(ibId) {
+    const catSelect = document.getElementById('catSelect');
+    catSelect.innerHTML = '<option value="0">-- Не выбрано --</option>';
+    
+    if (!ibId || !sectionsData[ibId]) {
+        catSelect.disabled = true;
+        return;
+    }
+    
+    catSelect.disabled = false;
+    const list = sectionsData[ibId];
+    
+    list.forEach(sec => {
+        const opt = document.createElement('option');
+        opt.value = sec.id;
+        let prefix = '';
+        if(sec.depth > 1) prefix = '&nbsp;&nbsp;'.repeat(sec.depth - 1) + '↳ ';
+        
+        opt.innerHTML = prefix + sec.name;
+        if(sec.depth === 1) opt.style.fontWeight = 'bold';
+        
+        catSelect.appendChild(opt);
+    });
+}
+
+function openPopupNew(visualIndex) {
+    const f = document.getElementById('editForm');
+    f.reset();
+    document.getElementById('slotIndex').value = findFreeSlotIndex();
+    const sort = (visualIndex + 1) * 10;
+    f.sort.value = sort;
+    f.text_align.value = 'center';
+    document.getElementById('popupTitle').innerText = `Новый блок (Сортировка: ${sort})`;
+    
+    // Reset selects
+    document.getElementById('iblockSelect').value = 0;
+    renderCategories(0);
+
+    document.getElementById('popup').style.display = 'flex';
+}
+
 function openPopup(slotIndex) {
     const f = document.getElementById('editForm');
     f.reset();
     document.getElementById('slotIndex').value = slotIndex;
     const b = banners[slotIndex] || {};
     document.getElementById('popupTitle').innerText = `Настройка блока #${slotIndex}`;
-    if (b.CATEGORY_ID) f.category_id.value = b.CATEGORY_ID;
+    
+    // Попытка найти и восстановить выбранные селекты
+    if(b.CATEGORY_ID) {
+        let foundIb = 0;
+        for(let ibId in sectionsData) {
+            if(sectionsData[ibId].find(s => s.id == b.CATEGORY_ID)) {
+                foundIb = ibId;
+                break;
+            }
+        }
+        if(foundIb) {
+            document.getElementById('iblockSelect').value = foundIb;
+            renderCategories(foundIb);
+            document.getElementById('catSelect').value = b.CATEGORY_ID;
+        }
+    } else {
+        document.getElementById('iblockSelect').value = 0;
+        renderCategories(0);
+    }
+
     f.title.value = b.TITLE || '';
     f.subtitle.value = b.SUBTITLE || '';
     f.link.value = b.LINK || '';
@@ -437,8 +601,6 @@ function openAdjuster() {
         document.getElementById('adjustTextOverlay').appendChild(contentToClone.cloneNode(true));
     }
 
-    // Инициализация значений: БЕРЕМ ИЗ СКРЫТЫХ ИНПУТОВ (они свежее всего в текущем сеансе)
-    // или из объекта banners, если инпуты пусты
     const curScale = document.getElementById('inpScale').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_SCALE || 100;
     const curX = document.getElementById('inpPosX').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_X || 50;
     const curY = document.getElementById('inpPosY').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_Y || 50;
@@ -455,27 +617,22 @@ function updateAdjusterPreview() { adjuster.preview.style.backgroundSize = `${ad
 function applyAdjustments() {
     const slotIndex = document.getElementById('slotIndex').value;
     
-    // 1. Берем значения из переменных adjuster
     const scale = adjuster.scale.value;
     const posX = adjuster.posX.value;
     const posY = adjuster.posY.value;
 
-    // 2. Пишем в скрытые инпуты формы (чтобы ушло на сервер при Save)
     document.getElementById('inpScale').value = scale;
     document.getElementById('inpPosX').value = posX;
     document.getElementById('inpPosY').value = posY;
     
-    // 3. КРИТИЧНО: Обновляем объект banners в памяти!
     if (!banners[slotIndex]) banners[slotIndex] = { SLOT_INDEX: slotIndex };
     
     banners[slotIndex].IMG_SCALE = scale;
     banners[slotIndex].IMG_POS_X = posX;
     banners[slotIndex].IMG_POS_Y = posY;
     
-    // 4. Принудительно обновляем визуальное отображение
     render();
     
-    // 5. Закрываем окно
     closeAdjuster();
 }
 adjuster.scale.addEventListener('input', updateAdjusterPreview);
@@ -495,10 +652,8 @@ function initGlobalSettings() {
 }
 
 function initGlobalState() {
-    // Check first banner for active state to set global button visuals
-    const b = banners[1]; // Using banner in the first slot
+    const b = banners[1]; 
     if (b) {
-        // Helper to toggle class
         const tgl = (id, active) => {
             const el = document.getElementById(id);
             if (el) {
@@ -514,7 +669,17 @@ function initGlobalState() {
     }
 }
 
-document.getElementById('catSelect').addEventListener('change', function() { const sec = sections[this.value]; if(sec) { document.getElementById('inpTitle').value = sec.title; document.getElementById('inpSubtitle').value = sec.subtitle; document.getElementById('inpLink').value = sec.link; if(sec.image) document.getElementById('inpImgUrl').value = sec.image; } });
+document.getElementById('catSelect').addEventListener('change', function() {
+    const secId = this.value;
+    const data = allSectionsFlat[secId];
+    if(data) {
+        document.getElementById('inpTitle').value = data.title;
+        document.getElementById('inpSubtitle').value = data.subtitle;
+        document.getElementById('inpLink').value = data.link;
+        if(data.image) document.getElementById('inpImgUrl').value = data.image;
+    }
+});
+
 document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); initGlobalState(); closePopup(); } else { alert(data.errors.join('\n')); } };
 
 initGlobalSettings();
