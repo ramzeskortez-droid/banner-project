@@ -184,8 +184,9 @@ try {
             'CATEGORY_ID'        => (int)$req->getPost('category_id'),
             'TEXT_ALIGN'         => $req->getPost('text_align') ?: 'center',
             'TEXT_COLOR'         => $req->getPost('text_color') ?: '#000000',
-            'TITLE_FONT_SIZE'    => $req->getPost('title_font_size') ?: '20px',
-            'SUBTITLE_FONT_SIZE' => $req->getPost('subtitle_font_size') ?: '14px',
+            // Добавляем (int) для надежности и приклеиваем 'px'
+            'TITLE_FONT_SIZE'    => ((int)$req->getPost('title_font_size') ?: 20) . 'px',
+            'SUBTITLE_FONT_SIZE' => ((int)$req->getPost('subtitle_font_size') ?: 14) . 'px',
             'FONT_FAMILY'        => $req->getPost('font_family') ?: 'Open Sans',
             'FONT_WEIGHT'        => $req->getPost('font_weight') ?: 'normal',
             'FONT_STYLE'         => $req->getPost('font_style') ?: 'normal',

@@ -167,11 +167,15 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 <script>
     function showLogs() {
         const logContent = document.createElement('div');
+        logContent.className = 'adm-log-wrapper'; // Добавим класс для удобства
         logContent.style.cssText = "position:fixed; top:10%; left:50%; transform:translateX(-50%); width:600px; height:500px; background:#fff; border:1px solid #ccc; z-index:10000; box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; flex-direction:column;";
         logContent.innerHTML = `
-            <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('div').parentElement.remove()">✕</button></div>
+            <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('.adm-log-wrapper').remove()">✕</button></div>
             <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
-            <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="copyLogs(this)">Копировать</button>&nbsp;<button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
+            <div style="padding:10px; border-top:1px solid #ccc; text-align:right; display:flex; justify-content:flex-end; gap:10px;">
+                <button class="adm-btn" onclick="copyAndClose(this)">Копировать и закрыть</button>
+                <button class="adm-btn" onclick="clearLogs()">Очистить</button>
+            </div>
         `;
         document.body.appendChild(logContent);
 
@@ -190,17 +194,31 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         });
     }
 
-    function copyLogs(btn) {
+    function copyAndClose(btn) {
         const text = document.getElementById('logArea').innerText;
-        navigator.clipboard.writeText(text).then(() => {
-            const originalText = btn.innerText;
+        
+        // Создаем временный элемент для копирования (работает надежнее navigator.clipboard)
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";  // Чтобы не скроллило страницу
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
             btn.innerText = 'Скопировано!';
-            btn.disabled = true;
+            // Закрываем окно через 0.5 сек
             setTimeout(() => {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }, 2000);
-        });
+                const wrapper = btn.closest('.adm-log-wrapper');
+                if (wrapper) wrapper.remove();
+            }, 500);
+        } catch (err) {
+            alert('Не удалось скопировать автоматически');
+        }
+        
+        document.body.removeChild(textarea);
     }
 
     const setsData = <?=json_encode(array_values($bannersBySet))?>;

@@ -710,7 +710,7 @@ document.getElementById('catSelect').addEventListener('change', function() {
     }
 });
 
-document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); initGlobalState(); closePopup(); } else { alert(data.errors.join('\n')); } };
+document.getElementById('editForm').onsubmit = async function(e) { e.preventDefault(); let fd = new FormData(this); let res = await fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd}); let data = await res.json(); if(data.success) { banners[data.data.SLOT_INDEX] = data.data; render(); initGlobalState(); closePopup(); } else { alert(data.errors.join('\n')); } };
 
 initGlobalSettings();
 render();
