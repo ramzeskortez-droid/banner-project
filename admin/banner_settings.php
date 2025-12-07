@@ -171,7 +171,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         logContent.innerHTML = `
             <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('div').parentElement.remove()">✕</button></div>
             <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
-            <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
+            <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="copyLogs(this)">Копировать</button>&nbsp;<button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
         `;
         document.body.appendChild(logContent);
 
@@ -187,6 +187,19 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         }).then(() => {
             const area = document.getElementById('logArea');
             if(area) area.innerText = 'Очищено';
+        });
+    }
+
+    function copyLogs(btn) {
+        const text = document.getElementById('logArea').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = 'Скопировано!';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }, 2000);
         });
     }
 

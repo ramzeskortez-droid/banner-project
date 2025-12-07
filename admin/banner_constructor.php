@@ -171,7 +171,9 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                 <!-- Размер шрифта -->
                 <div style="display:flex; align-items:center; gap:10px;">
                     <label>Размер шрифта:</label>
+                    <label for="massTitleSize" style="font-weight:normal;">Заголовок:</label>
                     <input type="number" id="massTitleSize" class="form-control" placeholder="Заголовок px" style="width: 120px; height: 30px;">
+                    <label for="massSubtitleSize" style="font-weight:normal; margin-left:5px;">Анонс:</label>
                     <input type="number" id="massSubtitleSize" class="form-control" placeholder="Анонс px" style="width: 120px; height: 30px;">
                     <button type="button" class="adm-btn" onclick="applyMassFontSize()">Применить</button>
                 </div>
@@ -437,8 +439,8 @@ function applyMassFontSize() {
         if(d.success) {
             // Update local banners object
             Object.values(banners).forEach(b => {
-                if(tVal) b.TITLE_FONT_SIZE = tVal;
-                if(sVal) b.SUBTITLE_FONT_SIZE = sVal;
+                if(tVal) b.TITLE_FONT_SIZE = tVal + 'px';
+                if(sVal) b.SUBTITLE_FONT_SIZE = sVal + 'px';
             });
 
             render(); // Перерисовка сетки
@@ -446,8 +448,6 @@ function applyMassFontSize() {
             // ВОССТАНОВЛЕНИЕ ЗНАЧЕНИЙ (Фикс исчезновения)
             if(titleInput) titleInput.value = tVal;
             if(subInput) subInput.value = sVal;
-
-            alert('Размеры шрифтов успешно применены ко всем баннерам');
         } else {
              alert('Ошибка: ' + (d.errors ? d.errors.join('\\n') : 'Unknown error'));
         }
