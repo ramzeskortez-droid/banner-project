@@ -122,7 +122,10 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div class="admin-header">
     <h2>Список созданных баннеров</h2>
-    <button class="adm-btn adm-btn-save" onclick="createSet()">Создать баннер из шаблона</button>
+    <div>
+        <button class="adm-btn" onclick="showLogs()">📋 Логи отладки</button>
+        <button class="adm-btn adm-btn-save" onclick="createSet()">Создать баннер из шаблона</button>
+    </div>
 </div>
 
 <div class="sets-grid">
@@ -162,6 +165,31 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </div>
 
 <script>
+    function showLogs() {
+        const logContent = document.createElement('div');
+        logContent.style.cssText = "position:fixed; top:10%; left:50%; transform:translateX(-50%); width:600px; height:500px; background:#fff; border:1px solid #ccc; z-index:10000; box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; flex-direction:column;";
+        logContent.innerHTML = `
+            <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('div').parentElement.remove()">✕</button></div>
+            <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
+            <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
+        `;
+        document.body.appendChild(logContent);
+
+        fetch('mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>')
+            .then(r => r.text())
+            .then(txt => document.getElementById('logArea').innerText = txt || 'Лог пуст');
+    }
+
+    function clearLogs() {
+        fetch('mycompany_banner_ajax_save_banner.php', {
+            method: 'POST',
+            body: new URLSearchParams({action:'clear_log', sessid:'<?=bitrix_sessid()?>'})
+        }).then(() => {
+            const area = document.getElementById('logArea');
+            if(area) area.innerText = 'Очищено';
+        });
+    }
+
     const setsData = <?=json_encode(array_values($bannersBySet))?>;
     const setsDataById = <?=json_encode($bannersBySet)?>;
     const popup = document.getElementById('preview-popup');

@@ -138,9 +138,6 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <div class="construct-wrap">
     <div class="construct-header">
-        <div class="construct-header-left">
-            <button class="adm-btn" onclick="showLogs()" style="margin-right:10px;">📋 Логи отладки</button>
-        </div>
         <h2>Сетка баннеров</h2>
         <a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a>
     </div>
@@ -537,6 +534,10 @@ function openPopupNew(visualIndex) {
     f.text_align.value = 'center';
     document.getElementById('popupTitle').innerText = `Новый блок (Сортировка: ${sort})`;
     
+    // Установка дефолтных значений для шрифтов
+    f.title_font_size.value = 22;
+    f.subtitle_font_size.value = 14;
+
     // Reset selects
     document.getElementById('iblockSelect').value = 0;
     renderCategories(0);
@@ -670,7 +671,7 @@ function initGlobalSettings() {
 }
 
 function initGlobalState() {
-    const b = banners[1]; 
+    const b = Object.values(banners)[0]; // Берем первый попавшийся
     if (b) {
         const tgl = (id, active) => {
             const el = document.getElementById(id);
@@ -684,6 +685,16 @@ function initGlobalState() {
         tgl('btn_GB_SB', b.SUBTITLE_BOLD === 'Y');
         tgl('btn_GB_SI', b.SUBTITLE_ITALIC === 'Y');
         tgl('btn_GB_SU', b.SUBTITLE_UNDERLINE === 'Y');
+        
+        // Подставляем значения в глобальные инпуты, очищая от 'px'
+        const tSize = parseInt(b.TITLE_FONT_SIZE) || 22;
+        const sSize = parseInt(b.SUBTITLE_FONT_SIZE) || 14;
+
+        const massT = document.getElementById('massTitleSize');
+        const massS = document.getElementById('massSubtitleSize');
+
+        if(massT && !massT.value) massT.value = tSize; 
+        if(massS && !massS.value) massS.value = sSize;
     }
 }
 
@@ -703,32 +714,5 @@ document.getElementById('editForm').onsubmit = async function(e) { e.preventDefa
 initGlobalSettings();
 render();
 initGlobalState();
-
-function showLogs() {
-    // Простой alert или лучше отдельное модальное окно, используем существующий попап механизма, но переделаем контент, или простой alert для скорости, 
-    // но раз просили попап - создадим временный div
-    const logContent = document.createElement('div');
-    logContent.style.cssText = "position:fixed; top:10%; left:50%; transform:translateX(-50%); width:600px; height:500px; background:#fff; border:1px solid #ccc; z-index:10000; box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; flex-direction:column;";
-    logContent.innerHTML = `
-        <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('div').parentElement.remove()">✕</button></div>
-        <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
-        <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
-    `;
-    document.body.appendChild(logContent);
-
-    fetch('mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>')
-        .then(r => r.text())
-        .then(txt => document.getElementById('logArea').innerText = txt || 'Лог пуст');
-}
-
-function clearLogs() {
-    fetch('mycompany_banner_ajax_save_banner.php', {
-        method: 'POST',
-        body: new URLSearchParams({action:'clear_log', sessid:'<?=bitrix_sessid()?>'})
-    }).then(() => {
-        const area = document.getElementById('logArea');
-        if(area) area.innerText = 'Очищено';
-    });
-}
 </script>
 <?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>
