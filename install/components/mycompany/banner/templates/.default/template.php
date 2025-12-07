@@ -30,13 +30,17 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
 
     $textColor = $banner['TEXT_COLOR'] ?: '#000000';
     $textAlign = $banner['TEXT_ALIGN'] ?: 'center';
+
+    // Обработка размеров шрифта с добавлением 'px' для числовых значений
+    $tSize = (is_numeric($banner['TITLE_FONT_SIZE']) && $banner['TITLE_FONT_SIZE'] > 0) ? $banner['TITLE_FONT_SIZE'].'px' : ($banner['TITLE_FONT_SIZE'] ?: '22px');
+    $sSize = (is_numeric($banner['SUBTITLE_FONT_SIZE']) && $banner['SUBTITLE_FONT_SIZE'] > 0) ? $banner['SUBTITLE_FONT_SIZE'].'px' : ($banner['SUBTITLE_FONT_SIZE'] ?: '14px');
     
-    $titleStyle = "font-size:" . ($banner['TITLE_FONT_SIZE'] ?: '20px') . ";";
+    $titleStyle = "font-size:" . $tSize . ";";
     $titleStyle .= ($banner['TITLE_BOLD'] == 'Y') ? "font-weight:bold;" : "font-weight:normal;";
     $titleStyle .= ($banner['TITLE_ITALIC'] == 'Y') ? "font-style:italic;" : "";
     $titleStyle .= ($banner['TITLE_UNDERLINE'] == 'Y') ? "text-decoration:underline;" : "";
 
-    $subtitleStyle = "font-size:" . ($banner['SUBTITLE_FONT_SIZE'] ?: '14px') . ";";
+    $subtitleStyle = "font-size:" . $sSize . ";";
     if ($banner['SUBTITLE_BOLD'] == 'Y') $subtitleStyle .= "font-weight:bold;";
     if ($banner['SUBTITLE_ITALIC'] == 'Y') $subtitleStyle .= "font-style:italic;";
     if ($banner['SUBTITLE_UNDERLINE'] == 'Y') $subtitleStyle .= "text-decoration:underline;";
@@ -44,8 +48,8 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
     <a href="<?=htmlspecialcharsbx($banner['LINK'])?>" class="<?=$classes?>" style="<?=$imgStyle?>">
         <div class="banner-slot-content text-<?=$textAlign?>" style="color: <?=$textColor?>;">
             <div class="b-text-wrapper" style="<?=$globalBg?>">
-                <?php if($banner['TITLE']): ?><div class="b-title" style="<?=$titleStyle?>"><?=$banner['TITLE']?></div><?php endif; ?>
-                <?php if($banner['SUBTITLE']): ?><div class="b-sub" style="<?=$subtitleStyle?>"><?=$banner['SUBTITLE']?></div><?php endif; ?>
+                <?php if($banner['TITLE']): ?><div class="b-title banner-clamp" style="<?=$titleStyle?>"><?=$banner['TITLE']?></div><?php endif; ?>
+                <?php if($banner['SUBTITLE']): ?><div class="b-sub banner-clamp" style="<?=$subtitleStyle?>"><?=$banner['SUBTITLE']?></div><?php endif; ?>
             </div>
         </div>
     </a>

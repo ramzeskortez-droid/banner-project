@@ -410,10 +410,12 @@ function toggleMass(field) {
 }
 
 function applyMassFontSize() {
-    const titleSize = document.getElementById('massTitleSize').value;
-    const subtitleSize = document.getElementById('massSubtitleSize').value;
+    const titleInput = document.getElementById('massTitleSize');
+    const subInput = document.getElementById('massSubtitleSize');
+    const tVal = titleInput.value;
+    const sVal = subInput.value;
 
-    if (!titleSize && !subtitleSize) {
+    if (!tVal && !sVal) {
         alert('Введите хотя бы один размер шрифта.');
         return;
     }
@@ -422,11 +424,11 @@ function applyMassFontSize() {
     fd.append('action', 'save_mass_font_size');
     fd.append('set_id', '<?=$setId?>');
     fd.append('sessid', '<?=bitrix_sessid()?>');
-    if (titleSize) {
-        fd.append('title_size', titleSize);
+    if (tVal) {
+        fd.append('title_size', tVal);
     }
-    if (subtitleSize) {
-        fd.append('subtitle_size', subtitleSize);
+    if (sVal) {
+        fd.append('subtitle_size', sVal);
     }
 
     fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})
@@ -435,18 +437,17 @@ function applyMassFontSize() {
         if(d.success) {
             // Update local banners object
             Object.values(banners).forEach(b => {
-                if (titleSize) {
-                    b.TITLE_FONT_SIZE = titleSize + 'px';
-                }
-                if (subtitleSize) {
-                    b.SUBTITLE_FONT_SIZE = subtitleSize + 'px';
-                }
+                if(tVal) b.TITLE_FONT_SIZE = tVal;
+                if(sVal) b.SUBTITLE_FONT_SIZE = sVal;
             });
-            // Re-render the grid
-            render();
-            // Maybe clear inputs
-            document.getElementById('massTitleSize').value = '';
-            document.getElementById('massSubtitleSize').value = '';
+
+            render(); // Перерисовка сетки
+
+            // ВОССТАНОВЛЕНИЕ ЗНАЧЕНИЙ (Фикс исчезновения)
+            if(titleInput) titleInput.value = tVal;
+            if(subInput) subInput.value = sVal;
+
+            alert('Размеры шрифтов успешно применены ко всем баннерам');
         } else {
              alert('Ошибка: ' + (d.errors ? d.errors.join('\\n') : 'Unknown error'));
         }

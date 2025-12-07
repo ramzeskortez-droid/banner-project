@@ -37,3 +37,17 @@
 
 .b-title { font-weight: normal; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
 .b-sub { opacity: 0.95; line-height: 1.4; }
+
+.banner-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Ограничение в 3 строки */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word; /* Чтобы длинные слова не ломали верстку */
+}
+
+/* Если нужно для заголовка меньше строк (например, 2) */
+.b-title.banner-clamp {
+    -webkit-line-clamp: 2;
+}
