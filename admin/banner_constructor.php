@@ -137,7 +137,13 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </style>
 
 <div class="construct-wrap">
-    <div class="construct-header"><h2>Сетка баннеров</h2><a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a></div>
+    <div class="construct-header">
+        <div class="construct-header-left">
+            <button class="adm-btn" onclick="showLogs()" style="margin-right:10px;">📋 Логи отладки</button>
+        </div>
+        <h2>Сетка баннеров</h2>
+        <a href="mycompany_banner_settings.php?lang=<?=LANGUAGE_ID?>" class="adm-btn">← Вернуться к списку</a>
+    </div>
     <div class="global-settings">
         <div class="form-row flex-center" style="padding: 15px 20px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex-wrap: wrap;">
             
@@ -270,6 +276,14 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                             <label for="inpTextColor">Цвет текста</label>
                             <input type="color" name="text_color" id="inpTextColor" value="#000000" style="width:100%; height:38px;">
                             <small id="inpTextColorWarning" style="color: #888; display: none; margin-top: 5px;">(Включен единый цвет)</small>
+                        </div>
+                        <div class="form-row">
+                            <label>Размер заголовка (px)</label>
+                            <input type="number" name="title_font_size" id="inpTitleSize" class="form-control">
+                        </div>
+                        <div class="form-row">
+                            <label>Размер анонса (px)</label>
+                            <input type="number" name="subtitle_font_size" id="inpTextSize" class="form-control">
                         </div>
                     </div>
                 </div>
@@ -572,6 +586,10 @@ function openPopup(slotIndex) {
     textColorInput.disabled = false;
     textColorWarning.style.display = 'none';
 
+    // Превращаем "20px" в 20, чтобы input type="number" это принял
+    f.title_font_size.value = parseInt(b.TITLE_FONT_SIZE) || 20;
+    f.subtitle_font_size.value = parseInt(b.SUBTITLE_FONT_SIZE) || 14;
+
     // Set formatting checkboxes
     document.getElementById('tb_b').checked = (b.TITLE_BOLD === 'Y');
     document.getElementById('tb_i').checked = (b.TITLE_ITALIC === 'Y');
@@ -685,5 +703,32 @@ document.getElementById('editForm').onsubmit = async function(e) { e.preventDefa
 initGlobalSettings();
 render();
 initGlobalState();
+
+function showLogs() {
+    // Простой alert или лучше отдельное модальное окно, используем существующий попап механизма, но переделаем контент, или простой alert для скорости, 
+    // но раз просили попап - создадим временный div
+    const logContent = document.createElement('div');
+    logContent.style.cssText = "position:fixed; top:10%; left:50%; transform:translateX(-50%); width:600px; height:500px; background:#fff; border:1px solid #ccc; z-index:10000; box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; flex-direction:column;";
+    logContent.innerHTML = `
+        <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('div').parentElement.remove()">✕</button></div>
+        <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
+        <div style="padding:10px; border-top:1px solid #ccc; text-align:right;"><button class="adm-btn" onclick="clearLogs()">Очистить</button></div>
+    `;
+    document.body.appendChild(logContent);
+
+    fetch('mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>')
+        .then(r => r.text())
+        .then(txt => document.getElementById('logArea').innerText = txt || 'Лог пуст');
+}
+
+function clearLogs() {
+    fetch('mycompany_banner_ajax_save_banner.php', {
+        method: 'POST',
+        body: new URLSearchParams({action:'clear_log', sessid:'<?=bitrix_sessid()?>'})
+    }).then(() => {
+        const area = document.getElementById('logArea');
+        if(area) area.innerText = 'Очищено';
+    });
+}
 </script>
 <?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>

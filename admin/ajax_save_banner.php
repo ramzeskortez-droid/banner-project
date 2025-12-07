@@ -3,12 +3,19 @@ define("NO_KEEP_STATISTIC", true);
 define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
 
+function writeDebugLog($data) {
+    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+    $entry = date('Y-m-d H:i:s') . " " . print_r($data, true) . "\n----------------\n";
+    file_put_contents($file, $entry, FILE_APPEND);
+}
+
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerTable;
 use MyCompany\Banner\BannerSetTable;
 
 header('Content-Type: application/json');
+writeDebugLog($_REQUEST);
 $resp = ['success' => false, 'errors' => []];
 
 if (!check_bitrix_sessid()) {
@@ -20,7 +27,25 @@ if (!check_bitrix_sessid()) {
 try {
     Loader::includeModule('mycompany.banner');
     $req = Application::getInstance()->getContext()->getRequest();
-    $action = $req->getPost('action');
+    $action = $req->get('action') ?: $req->getPost('action');
+    
+    if ($action === 'get_log') {
+        $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+        if (file_exists($file)) {
+            echo file_get_contents($file);
+        } else {
+            echo "Log file not found.";
+        }
+        die();
+    }
+
+    if ($action === 'clear_log') {
+        $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+        file_put_contents($file, '');
+        echo json_encode(['success' => true]);
+        die();
+    }
+
     $setId = (int)$req->getPost('set_id');
 
     if ($action === 'save_set_settings') {
