@@ -4,8 +4,14 @@
     gap: 15px;
 }
 .banner-item {
-    border-radius: 10px; position: relative; overflow: hidden; display: flex; text-decoration: none;
-    transition: transform 0.2s; background-size: cover; background-position: center;
+    border-radius: 10px; 
+    position: relative; 
+    overflow: hidden; /* Важно: обрезает всё, что вылезает за пределы картинки */
+    display: flex; 
+    text-decoration: none;
+    transition: transform 0.2s; 
+    background-size: cover; 
+    background-position: center;
 }
 .banner-item:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
 
@@ -21,7 +27,11 @@
     height: 100%;
     width: 100%;
     padding: 20px;
+    /* Гарантирует, что контент не выйдет за пределы слота */
+    max-height: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+    overflow: hidden; 
 }
 
 .b-text-wrapper {
@@ -29,25 +39,38 @@
     padding: 15px 20px;
     border-radius: 8px;
     transition: background 0.3s;
+    /* Новые правила */
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .text-left { align-items: flex-start; text-align: left; }
 .text-center { align-items: center; text-align: center; }
 .text-right { align-items: flex-end; text-align: right; }
 
-.b-title { font-weight: normal; text-transform: uppercase; margin-bottom: 5px; line-height: 1.2; }
-.b-sub { opacity: 0.95; line-height: 1.4; }
-
-.banner-clamp {
-    display: -webkit-box;
-    -webkit-line-clamp: 3; /* Ограничение в 3 строки */
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    word-break: break-word; /* Чтобы длинные слова не ломали верстку */
+.b-title {
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    line-height: 1.2;
+    word-wrap: break-word; /* Renamed from word-break for broader support */
 }
 
-/* Если нужно для заголовка меньше строк (например, 2) */
+.b-sub {
+    opacity: 0.95;
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    max-height: 3.9em;
+}
+
+/* Keep the 2-line limit on titles from previous version */
 .b-title.banner-clamp {
     -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
