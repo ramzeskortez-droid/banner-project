@@ -355,6 +355,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         </div>
         <div class="header-actions">
             <button class="adm-btn" onclick="alert('Импорт (в разработке)')">Импорт</button>
+            <button class="adm-btn" onclick="showLogs()">Показать/Очистить логи</button>
             <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать баннер</button>
         </div>
     </div>
@@ -431,6 +432,30 @@ const popupCrop = document.getElementById('preview-crop');
 /**
  * Live search functionality. Filters banners by name.
  */
+/**
+ * Placeholder for showing debug logs.
+ */
+function showLogs() {
+    alert('Логирование пока не реализовано.');
+    // TODO: Implement actual log fetching and display logic
+}
+
+/**
+ * Placeholder for copying logs.
+ */
+function copyLogs() {
+    alert('Копирование логов пока не реализовано.');
+    // TODO: Implement actual log copying logic
+}
+
+/**
+ * Placeholder for clearing logs.
+ */
+function clearLogs() {
+    alert('Очистка логов пока не реализована.');
+    // TODO: Implement actual log clearing logic
+}
+
 document.getElementById('searchSet').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     document.querySelectorAll('.set-card').forEach(card => {
