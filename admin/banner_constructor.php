@@ -65,20 +65,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
 <style>
     .construct-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .construct-wrap {
-        width: 100%;
-        max-width: 1600px; /* Ограничим ширину для больших экранов */
-        margin: 0 auto;
-        padding: 20px;     /* Внутренние отступы */
-        box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
-    }
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        width: 100%;
-        box-sizing: border-box;
-    }
+    .construct-wrap { max-width: 1400px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
 
     .slot {
         position: relative;

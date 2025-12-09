@@ -354,7 +354,6 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             </div>
         </div>
         <div class="header-actions">
-            <button class="adm-btn" onclick="alert('Импорт (в разработке)')">Импорт</button>
             <button class="adm-btn" onclick="showLogs()">Показать/Очистить логи</button>
             <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать баннер</button>
         </div>

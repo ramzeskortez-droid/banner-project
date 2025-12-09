@@ -12,6 +12,17 @@ define("NO_KEEP_STATISTIC", true);
 define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
 
+function writeDebugLog($data) {
+    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+    $log = date('Y-m-d H:i:s') . " | User: " . (is_object($GLOBALS['USER']) && $GLOBALS['USER']->IsAuthorized() ? $GLOBALS['USER']->GetID() : 'Guest') . "\n";
+    $log .= "Request: " . print_r($data, true) . "\n";
+    $log .= "------------------------\n";
+    file_put_contents($file, $log, FILE_APPEND);
+}
+
+// Call at the very beginning of the script to log all incoming requests
+writeDebugLog($_REQUEST);
+
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerTable;
