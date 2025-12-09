@@ -1,4 +1,12 @@
 <?php
+/**
+ * Banners (Sets) List page.
+ * Displays all created Banners in a grid view, provides search, creation, and deletion functionality.
+ *
+ * Terminology Mapping:
+ * - UI "Баннер" (Banner)    <=> DB `mycompany_banner_set` (BannerSetTable)
+ * - UI "Блок" (Block)      <=> DB `mycompany_banner` (BannerTable)
+ */
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 
 use Bitrix\Main\Loader;
@@ -10,18 +18,28 @@ Loader::includeModule("mycompany.banner");
 $APPLICATION->SetTitle("Управление баннерами");
 
 // --- Data Fetching ---
+// 1. Fetch all Banners (Sets)
 $setsRaw = BannerSetTable::getList(['order' => ['ID' => 'DESC']]);
 $setIds = [];
 $sets = [];
-$bannersBySet = [];
-$totalBanners = 0;
+$bannersBySet = []; // This will hold all blocks, grouped by banner ID, for the JS preview
 
 while($row = $setsRaw->fetch()) {
-    $row['BANNER_COUNT'] = 0; // Initialize
+    $row['BANNER_COUNT'] = 0; // Initialize block count
+    
+    // 2. For each Banner, fetch the preview image from its first block (slot)
+    $firstBlock = BannerTable::getList([
+        'filter' => ['SET_ID' => $row['ID'], 'SLOT_INDEX' => 1],
+        'select' => ['IMAGE'],
+        'limit' => 1
+    ])->fetch();
+    $row['PREVIEW_IMAGE'] = $firstBlock ? $firstBlock['IMAGE'] : null;
+
     $sets[$row['ID']] = $row;
     $setIds[] = $row['ID'];
 }
 
+// 3. Fetch all Blocks for all Banners on the page at once for the preview popup functionality.
 if (!empty($setIds)) {
     $bannersRes = BannerTable::getList([
         'filter' => ['@SET_ID' => $setIds],
@@ -29,19 +47,13 @@ if (!empty($setIds)) {
     ]);
     while ($banner = $bannersRes->fetch()) {
         if (isset($sets[$banner['SET_ID']])) {
-            $sets[$banner['SET_ID']]['BANNER_COUNT']++;
             $bannersBySet[$banner['SET_ID']][] = $banner;
         }
     }
 }
 
+// 4. Final count for the stats panel
 $totalSets = count($sets);
-// Recalculate total banners based on actual fetched banners
-$totalBanners = 0;
-foreach ($bannersBySet as $bannersInSet) {
-    $totalBanners += count($bannersInSet);
-}
-
 
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
 ?>
@@ -160,6 +172,10 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     }
 
     .set-card {
+        background-color: white;
+        background-size: cover;
+        background-position: center;
+        position: relative;
         background: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -167,6 +183,24 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         border: 1px solid #e2e8f0;
         display: flex;
         flex-direction: column;
+    }
+    .card-preview-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.9) 50%, white 100%);
+        border-radius: 11px; /* slightly smaller to not cover the border */
+    }
+    .set-card:hover .card-preview-overlay {
+        background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.8) 50%, white 100%);
+    }
+
+    .card-content {
+        position: relative;
+        z-index: 2;
+        background: transparent !important;
+        padding: 20px;
+        flex-grow: 1;
+        cursor: pointer;
     }
 
     .set-card:hover {
@@ -310,41 +344,39 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             <p class="page-subtitle">Создавайте и редактируйте рекламные сетки для вашего сайта</p>
             <div class="stats-bar">
                 <div class="stat-item">
-                    <span>Всего наборов:</span>
+                    <span>Всего баннеров:</span>
                     <span class="stat-number"><?= $totalSets ?></span>
                 </div>
                 <div class="stat-item">
-                    <span>Всего баннеров:</span>
-                    <span class="stat-number"><?= $totalBanners ?></span>
-                </div>
-                <div class="stat-item">
-                    <span>Конверсия:</span>
+                    <span>Общая конверсия:</span>
                     <span class="stat-number">?%</span>
                 </div>
             </div>
         </div>
         <div class="header-actions">
             <button class="adm-btn" onclick="alert('Импорт (в разработке)')">Импорт</button>
-            <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать набор</button>
+            <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать баннер</button>
         </div>
     </div>
 
     <!-- Filter Bar -->
     <div class="filter-bar">
         <div class="search-box">
-            <input type="text" id="searchSet" class="adm-input" placeholder="Поиск по названию набора...">
+            <input type="text" id="searchSet" class="adm-input" placeholder="Поиск по названию баннера...">
         </div>
     </div>
 
     <!-- Banners Grid -->
     <div class="sets-grid" id="setsGrid">
         <?php if (empty($sets)): ?>
-            <p>Еще не создано ни одного набора баннеров.</p>
+            <p>Еще не создано ни одного баннера.</p>
         <?php else: ?>
             <?php foreach($sets as $set):
                 $dateCreate = ($set['DATE_CREATE'] instanceof DateTime) ? $set['DATE_CREATE']->format('d.m.Y') : 'N/A';
+                $previewStyle = $set['PREVIEW_IMAGE'] ? 'style="background-image: url(\\' . htmlspecialcharsbx($set['PREVIEW_IMAGE']) . '\\")"' : '';
             ?>
-            <div class="set-card" data-set-id="<?= $set['ID'] ?>" data-set-name="<?= htmlspecialcharsbx($set['NAME']) ?>" onmouseenter="showPreview(<?=$set['ID']?>, this, event)" onmouseleave="hidePreview()">
+            <div class="set-card" data-set-id="<?= $set['ID'] ?>" data-set-name="<?= htmlspecialcharsbx($set['NAME']) ?>" <?= $previewStyle ?> onmouseenter="showPreview(<?=$set['ID']?>, this, event)" onmouseleave="hidePreview()">
+                <div class="card-preview-overlay"></div>
                 <div class="card-content" onclick="window.location='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANG?>'">
                     <div class="card-header">
                         <div class="card-icon">🖼️</div>
@@ -359,7 +391,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     </div>
                 </div>
                 <div class="card-actions">
-                     <button title="Удалить набор" class="delete-btn" onclick="deleteSet(<?= $set['ID'] ?>, '<?= CUtil::JSEscape($set['NAME']) ?>', event)">🗑️</button>
+                     <button title="Удалить баннер" class="delete-btn" onclick="deleteSet(<?= $set['ID'] ?>, '<?= CUtil::JSEscape($set['NAME']) ?>', event)">🗑️</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -373,7 +405,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 <!-- Create Popup -->
 <div id="create-popup">
     <div id="create-popup-content">
-        <h3 style="margin-top:0; margin-bottom:15px;">Новый набор баннеров</h3>
+        <h3 style="margin-top:0; margin-bottom:15px;">Новый баннер</h3>
         <div style="margin-bottom:15px;">
             <label style="display:block; margin-bottom:5px; font-weight:bold;">Название:</label>
             <input type="text" id="newSetName" class="adm-input" style="width:100%;" placeholder="Например: Акции на главной">
@@ -389,10 +421,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </div>
 
 <script>
+// This object holds all blocks for all banners, passed from PHP.
+// It's used to build the on-hover preview without extra AJAX calls.
 const bannersBySet = <?= CUtil::PhpToJSObject($bannersBySet) ?>;
+
 const popup = document.getElementById('preview-popup');
 const popupCrop = document.getElementById('preview-crop');
 
+/**
+ * Live search functionality. Filters banners by name.
+ */
 document.getElementById('searchSet').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase();
     document.querySelectorAll('.set-card').forEach(card => {
@@ -401,42 +439,82 @@ document.getElementById('searchSet').addEventListener('input', function(e) {
     });
 });
 
+/**
+ * Deletes a banner (set) and all its blocks.
+ * Uses a direct fetch call to the AJAX handler.
+ * @param {number} id - The ID of the banner (set) to delete.
+ * @param {string} name - The name for the confirmation message.
+ * @param {Event} event - The click event.
+ */
 function deleteSet(id, name, event) {
     event.stopPropagation(); // Prevent card click
-    if (confirm(`Вы уверены, что хотите удалить набор "${name}"? Это действие необратимо и удалит все баннеры в наборе.`)) {
-        BX.ajax.runAction('mycompany:banner.api.admin.deleteSet', {
-            data: { setId: id }
-        }).then(function (response) {
-            if (response.data.success) {
-                const card = document.querySelector(`.set-card[data-set-id="${id}"]`);
-                if (card) {
-                    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.95)';
-                    setTimeout(() => card.remove(), 300);
-                }
-            } else {
-                alert('Ошибка удаления: ' + response.errors.map(e => e.message).join(', '));
-            }
-        }).catch(function (response) {
-            alert('Ошибка запроса: ' + response.errors.map(e => e.message).join(', '));
-        });
+
+    const card = document.querySelector(`.set-card[data-set-id="${id}"]`);
+    if (card) {
+        card.style.opacity = '0.5'; // Visually indicate that an action is in progress
     }
+
+    const fd = new FormData();
+    fd.append('action', 'delete_set');
+    fd.append('set_id', id);
+    fd.append('sessid', '<?=bitrix_sessid()?>');
+
+    fetch('mycompany_banner_ajax_save_banner.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            if (card) {
+                // Animate card removal
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease, height 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                card.style.minHeight = '0';
+                card.style.height = card.offsetHeight + 'px';
+                requestAnimationFrame(() => {
+                    card.style.height = '0px';
+                    card.style.margin = '0';
+                    card.style.padding = '0';
+                });
+
+                setTimeout(() => card.remove(), 300);
+            }
+        } else {
+            alert('Ошибка удаления: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'));
+            if (card) {
+                card.style.opacity = '1'; // Restore card on error
+            }
+        }
+    }).catch(err => {
+        alert('Сетевая ошибка при удалении.');
+        console.error(err);
+        if (card) {
+            card.style.opacity = '1'; // Restore card on error
+        }
+    });
 }
 
+/**
+ * Displays a popup with a miniature grid preview of a banner.
+ * @param {number} setId - The ID of the banner to preview.
+ * @param {HTMLElement} el - The card element being hovered.
+ * @param {MouseEvent} event - The mouse event.
+ */
 let previewTimeout;
 function showPreview(setId, el, event) {
     clearTimeout(previewTimeout);
     previewTimeout = setTimeout(() => {
-        const banners = bannersBySet[setId] || [];
+        const blocks = bannersBySet[setId] || [];
         if (!popupCrop) return;
-        popupCrop.innerHTML = ''; // Clear
+        popupCrop.innerHTML = ''; // Clear previous content
 
         const grid = document.createElement('div');
         grid.id = 'preview-grid';
 
         for (let i = 1; i <= 8; i++) {
-            const b = banners.find(banner => banner.SLOT_INDEX == i);
+            const b = blocks.find(block => block.SLOT_INDEX == i);
             const slot = document.createElement('div');
             slot.dataset.i = i;
             slot.className = 'slot';
@@ -455,11 +533,9 @@ function showPreview(setId, el, event) {
             
                 const wrapper = document.createElement('div');
                 wrapper.className = 'b-text-wrapper';
-
                 let innerHTML = '';
                 let titleStyle = `font-size:${b.TITLE_FONT_SIZE || '22px'}; font-weight:${b.TITLE_BOLD === 'Y' ? 'bold' : 'normal'};`;
                 let subStyle = `font-size:${b.SUBTITLE_FONT_SIZE || '14px'}; font-weight:${b.SUBTITLE_BOLD === 'Y' ? 'bold' : 'normal'};`;
-
                 if(b.TITLE) innerHTML += `<div class="b-title" style="${titleStyle}">${b.TITLE}</div>`;
                 if(b.SUBTITLE) innerHTML += `<div class="b-sub" style="${subStyle}">${b.SUBTITLE}</div>`;
                 wrapper.innerHTML = innerHTML;
@@ -476,6 +552,7 @@ function showPreview(setId, el, event) {
         popup.style.display = 'block';
         popup.style.opacity = '0';
 
+        // "Smart" positioning logic
         const popupWidth = 500;
         const isRightSide = (window.innerWidth - event.clientX) < (popupWidth + 20);
 
@@ -483,10 +560,12 @@ function showPreview(setId, el, event) {
         let left = event.clientX + 15;
 
         if (isRightSide) {
+            // Show on the left if not enough space on the right
             left = event.clientX - popupWidth - 15;
         }
 
         if (top + popup.offsetHeight > window.innerHeight) {
+            // Adjust vertically if it overflows the bottom
             top = window.innerHeight - popup.offsetHeight - 10;
         }
         
@@ -500,6 +579,9 @@ function showPreview(setId, el, event) {
     }, 100); 
 }
 
+/**
+ * Hides the preview popup.
+ */
 function hidePreview() {
     clearTimeout(previewTimeout);
     popup.style.opacity = '0';
@@ -510,11 +592,17 @@ function hidePreview() {
     }, 150);
 }
 
+/**
+ * Shows the "Create new banner" popup.
+ */
 function createSet() {
     document.getElementById('create-popup').style.display = 'flex';
     document.getElementById('newSetName').focus();
 }
 
+/**
+ * Handles the creation of a new banner via AJAX.
+ */
 function doCreate() {
     const btn = document.getElementById('doCreateBtn');
     const nameInput = document.getElementById('newSetName');
@@ -537,14 +625,15 @@ function doCreate() {
         .then(r => r.json())
         .then(res => {
             if(res.success) {
+                // Redirect to the constructor for the new banner
                 window.location = 'mycompany_banner_constructor.php?set_id=' + res.id + '&lang=<?=LANG?>';
             } else {
-                alert('Ошибка: ' + (res.errors ? res.errors.join('\n') : 'Неизвестная ошибка.'));
+                alert('Ошибка: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'));
                 btn.disabled = false;
                 btn.textContent = 'Создать';
             }
         }).catch(() => {
-            alert('Сетевая ошибка при создании набора.');
+            alert('Сетевая ошибка при создании баннера.');
             btn.disabled = false;
             btn.textContent = 'Создать';
         });
