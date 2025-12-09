@@ -67,6 +67,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         overflow: hidden;
         background-size: cover;
         background-position: center;
+        background-repeat: no-repeat; /* <-- Добавлено */
         transition: transform 0.2s, box-shadow 0.2s;
     }
     .slot:hover {
@@ -114,7 +115,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     resize: vertical !important;  /* Разрешаем растягивание */
 }
     
-    .adjust-preview { height: 350px; width: 100%; background-size: 100%; background-position: 50% 50%; border-bottom: 1px solid #ddd; position: relative; background-color: #eee; cursor: grab; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+    .adjust-preview { height: 350px; width: 100%; background-size: 100%; background-position: 50% 50%; background-repeat: no-repeat; border-bottom: 1px solid #ddd; position: relative; background-color: #eee; cursor: grab; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
     .adjust-text-overlay { pointer-events: none; }
     .adjust-controls { padding: 20px; }
 
