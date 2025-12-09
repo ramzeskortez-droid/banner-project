@@ -1,6 +1,6 @@
 <?php
 $aMenu = array(
-    "parent_menu" => "global_menu_content",
+    "parent_menu" => "global_menu_mycompany",
     "sort" => 100,
     "text" => "Список баннеров",
     "title" => "Управление сетами",

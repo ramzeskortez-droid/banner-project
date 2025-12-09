@@ -4,274 +4,441 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admi
 use Bitrix\Main\Loader;
 use MyCompany\Banner\BannerSetTable;
 use MyCompany\Banner\BannerTable;
+use Bitrix\Main\Type\DateTime;
 
 Loader::includeModule("mycompany.banner");
-$APPLICATION->SetTitle("Наборы баннеров");
+$APPLICATION->SetTitle("Управление баннерами");
 
 // --- Data Fetching ---
 $setsRaw = BannerSetTable::getList(['order' => ['ID' => 'DESC']]);
 $setIds = [];
 $sets = [];
+$bannersBySet = [];
+$totalBanners = 0;
+
 while($row = $setsRaw->fetch()) {
+    $row['BANNER_COUNT'] = 0; // Initialize
     $sets[$row['ID']] = $row;
     $setIds[] = $row['ID'];
 }
 
-$bannersBySet = [];
 if (!empty($setIds)) {
     $bannersRes = BannerTable::getList([
         'filter' => ['@SET_ID' => $setIds],
-        'order' => ['SET_ID' => 'ASC', 'SORT' => 'ASC']
+        'select' => ['ID', 'SET_ID', 'IMAGE', 'SORT', 'SLOT_INDEX', 'COLOR', 'IMG_SCALE', 'IMG_POS_X', 'IMG_POS_Y', 'TEXT_ALIGN', 'TEXT_COLOR', 'TITLE', 'SUBTITLE', 'TITLE_FONT_SIZE', 'SUBTITLE_FONT_SIZE', 'TITLE_BOLD', 'SUBTITLE_BOLD']
     ]);
     while ($banner = $bannersRes->fetch()) {
-        $bannersBySet[$banner['SET_ID']][] = $banner;
-        // Find a preview image for the set card - first available image
-        if (empty($sets[$banner['SET_ID']]['PREVIEW_IMG']) && !empty($banner['IMAGE'])) {
-            $sets[$banner['SET_ID']]['PREVIEW_IMG'] = $banner['IMAGE'];
+        if (isset($sets[$banner['SET_ID']])) {
+            $sets[$banner['SET_ID']]['BANNER_COUNT']++;
+            $bannersBySet[$banner['SET_ID']][] = $banner;
         }
     }
 }
+
+$totalSets = count($sets);
+// Recalculate total banners based on actual fetched banners
+$totalBanners = 0;
+foreach ($bannersBySet as $bannersInSet) {
+    $totalBanners += count($bannersInSet);
+}
+
 
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
 ?>
 
 <style>
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .sets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-    .set-card {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.09);
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        border: 1px solid #e9ecef;
+    /* Copied from user prompt */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
-    .set-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
-    .set-preview-bg { height: 120px; background-size: cover; background-position: center; background-color: #f8f9fa; border-bottom: 1px solid #eee; }
-    .set-info { padding: 15px; }
-    .set-name { font-weight: 600; font-size: 15px; margin-bottom: 5px; }
-    .set-id { color: #888; font-size: 12px; }
 
-    #preview-popup {
-        width: 480px;
-        background: #fff;
-        border: 1px solid #999;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        z-index: 9999;
-        position: absolute;
-        display: none;
-        border-radius: 8px;
-        padding: 15px;
-        pointer-events: none;
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f5f7fa; /* Simpler background for admin */
     }
-    /* Контейнер, обрезающий высоту отмасштабированного грида */
-    #preview-crop {
-        width: 100%;
-        height: 320px; /* Подгоняем под высоту контента */
-        overflow: hidden;
+
+    .container {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Header */
+    .page-header {
+        background: white;
+        border-radius: 12px;
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .page-title-section h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .stats-bar {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #475569;
+    }
+
+    .stat-number {
+        font-weight: 600;
+        color: #3b82f6;
+        font-size: 16px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .search-box {
+        flex: 1;
+        min-width: 300px;
         position: relative;
     }
+
+    #searchSet {
+        width: 100%;
+        padding-left: 35px !important; /* Force padding */
+    }
+
+    .search-box::before {
+        content: "🔍";
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        opacity: 0.6;
+    }
+
+    /* Banner Grid */
+    .sets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+    }
+
+    .set-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .set-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-color: #3b82f6;
+    }
+    
+    .card-content {
+        padding: 20px;
+        flex-grow: 1;
+        cursor: pointer;
+    }
+
+    .card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .card-icon {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #eef5ff;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+    
+    .card-name {
+        font-size: 17px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+
+    .card-meta {
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .card-stats {
+        display: flex;
+        gap: 16px;
+        padding-top: 15px;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .card-stat-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .card-actions {
+        padding: 10px 15px;
+        background: #f8fafc;
+        border-top: 1px solid #eef2f9;
+        display:flex;
+        justify-content: flex-end;
+    }
+    
+    .delete-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: #fef2f2;
+        color: #ef4444;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 16px;
+    }
+    .delete-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* Preview Popup */
+    #preview-popup {
+        width: 500px; /* fixed width */
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+        padding: 15px;
+        z-index: 10050; /* High z-index for Bitrix */
+        position: fixed;
+        display: none;
+        pointer-events: none; /* important */
+        transition: opacity 0.15s ease-in-out;
+    }
+
+    #preview-crop {
+        width: 100%;
+        height: 320px;
+        overflow: hidden;
+        position: relative;
+        background-color: #f0f2f5;
+        border-radius: 8px;
+    }
+
     #preview-grid {
         width: 1420px;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 20px;
-        transform: scale(0.32);
+        transform: scale(0.32); /* Scale down the large grid */
         transform-origin: top left;
+        pointer-events: none;
     }
 
-    #preview-grid .slot { 
-        background-color: #eee; 
-        background-size: cover; 
-        background-position: center; 
-        border-radius: 4px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        color: white; 
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5); 
-        font-size: 28px; 
-        font-weight: bold; 
-        position: relative;
-        overflow: hidden;
-    }
-
-    #preview-grid .slot[data-i="1"],
-    #preview-grid .slot[data-i="2"],
-    #preview-grid .slot[data-i="3"],
-    #preview-grid .slot[data-i="4"] { 
-        height: 300px;
-        grid-column: span 2;
-    }
-    #preview-grid .slot[data-i="5"],
-    #preview-grid .slot[data-i="6"],
-    #preview-grid .slot[data-i="7"],
-    #preview-grid .slot[data-i="8"] { 
-        height: 200px; 
-        grid-column: span 1;
-    }
-
-    #preview-grid .slot-content { display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; padding: 25px; box-sizing: border-box; position:relative; z-index:2; }
+    #preview-grid .slot { background-color: #e9ecef; background-size: cover; background-position: center; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #adb5bd; font-size: 28px; font-weight: bold; position: relative; overflow: hidden; }
+    #preview-grid .slot[data-i="1"], #preview-grid .slot[data-i="2"], #preview-grid .slot[data-i="3"], #preview-grid .slot[data-i="4"] { grid-column: span 2; height: 300px; }
+    #preview-grid .slot[data-i="5"], #preview-grid .slot[data-i="6"], #preview-grid .slot[data-i="7"], #preview-grid .slot[data-i="8"] { grid-column: span 1; height: 200px; }
+    
+    #preview-grid .slot-content { display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; padding: 25px; box-sizing: border-box; }
     #preview-grid .text-left { align-items: flex-start; text-align: left; }
     #preview-grid .text-center { align-items: center; text-align: center; }
     #preview-grid .text-right { align-items: flex-end; text-align: right; }
-    #preview-grid .b-text-wrapper { padding: 10px 15px; border-radius: 4px; }
+    #preview-grid .b-text-wrapper { padding: 10px 15px; border-radius: 4px; display: inline-block; }
     #preview-grid .b-title { font-weight: bold; }
+    
+    /* Create new set popup */
+    #create-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10100; align-items: center; justify-content: center; }
+    #create-popup-content { background: #fff; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
 </style>
 
-<div class="admin-header">
-    <h2>Список созданных баннеров</h2>
-    <div>
-        <button class="adm-btn" onclick="showLogs()">📋 Логи отладки</button>
-        <button class="adm-btn adm-btn-save" onclick="createSet()">Создать баннер из шаблона</button>
-    </div>
-</div>
-
-<div class="sets-grid">
-    <?php foreach($sets as $set):
-        $previewImg = $set['PREVIEW_IMG'] ?? '';
-    ?>
-    <div class="set-card" 
-         onclick="window.location='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANG?>'"
-         onmouseenter="showPreview(<?=$set['ID']?>, this)" 
-         onmouseleave="hidePreview()">
-        <div class="set-preview-bg" style="background-image: url('<?=htmlspecialcharsbx($previewImg)?>');"></div>
-        <div class="set-info">
-            <div class="set-name"><?=htmlspecialcharsbx($set['NAME'])?></div>
-            <div class="set-id">ID: <?=$set['ID']?></div>
+<div class="container">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1>🎨 Управление баннерами</h1>
+            <p class="page-subtitle">Создавайте и редактируйте рекламные сетки для вашего сайта</p>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span>Всего наборов:</span>
+                    <span class="stat-number"><?= $totalSets ?></span>
+                </div>
+                <div class="stat-item">
+                    <span>Всего баннеров:</span>
+                    <span class="stat-number"><?= $totalBanners ?></span>
+                </div>
+                <div class="stat-item">
+                    <span>Конверсия:</span>
+                    <span class="stat-number">?%</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="adm-btn" onclick="alert('Импорт (в разработке)')">Импорт</button>
+            <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать набор</button>
         </div>
     </div>
-    <?php endforeach; ?>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="search-box">
+            <input type="text" id="searchSet" class="adm-input" placeholder="Поиск по названию набора...">
+        </div>
+    </div>
+
+    <!-- Banners Grid -->
+    <div class="sets-grid" id="setsGrid">
+        <?php if (empty($sets)): ?>
+            <p>Еще не создано ни одного набора баннеров.</p>
+        <?php else: ?>
+            <?php foreach($sets as $set):
+                $dateCreate = ($set['DATE_CREATE'] instanceof DateTime) ? $set['DATE_CREATE']->format('d.m.Y') : 'N/A';
+            ?>
+            <div class="set-card" data-set-id="<?= $set['ID'] ?>" data-set-name="<?= htmlspecialcharsbx($set['NAME']) ?>" onmouseenter="showPreview(<?=$set['ID']?>, this, event)" onmouseleave="hidePreview()">
+                <div class="card-content" onclick="window.location='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANG?>'">
+                    <div class="card-header">
+                        <div class="card-icon">🖼️</div>
+                        <div>
+                            <div class="card-name"><?=htmlspecialcharsbx($set['NAME'])?></div>
+                            <div class="card-meta">ID: <?=$set['ID']?> | Создан: <?= $dateCreate ?></div>
+                        </div>
+                    </div>
+                    <div class="card-stats">
+                        <div class="card-stat-item">👁️ <span>0</span> <small>(показы)</small></div>
+                        <div class="card-stat-item">🎯 <span>0%</span> <small>(конверсия)</small></div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                     <button title="Удалить набор" class="delete-btn" onclick="deleteSet(<?= $set['ID'] ?>, '<?= CUtil::JSEscape($set['NAME']) ?>', event)">🗑️</button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
 </div>
 
+<!-- Preview Popup -->
 <div id="preview-popup"><div id="preview-crop"></div></div>
 
-<div id="create-popup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:25px; border-radius:6px; width:350px; box-shadow:0 5px 20px rgba(0,0,0,0.2);">
-        <h3 style="margin-top:0; margin-bottom:15px;">Новый баннер</h3>
+<!-- Create Popup -->
+<div id="create-popup">
+    <div id="create-popup-content">
+        <h3 style="margin-top:0; margin-bottom:15px;">Новый набор баннеров</h3>
         <div style="margin-bottom:15px;">
             <label style="display:block; margin-bottom:5px; font-weight:bold;">Название:</label>
-            <input type="text" id="newSetName" class="adm-input" style="width:100%; box-sizing:border-box;" placeholder="Например: Весна 2025">
+            <input type="text" id="newSetName" class="adm-input" style="width:100%;" placeholder="Например: Акции на главной">
         </div>
         <div style="margin-bottom:20px;">
-            <label><input type="checkbox" id="newSetAuto" checked> Заполнить категориями (Авто)</label>
+            <label><input type="checkbox" id="newSetAuto" checked> Заполнить демо-данными из категорий</label>
         </div>
         <div style="text-align:right; display:flex; gap:10px; justify-content:flex-end;">
             <button class="adm-btn" onclick="document.getElementById('create-popup').style.display='none'">Отмена</button>
-            <button class="adm-btn adm-btn-save" onclick="doCreate()">Создать</button>
+            <button class="adm-btn adm-btn-save" id="doCreateBtn" onclick="doCreate()">Создать</button>
         </div>
     </div>
 </div>
 
 <script>
-    function showLogs() {
-        const logContent = document.createElement('div');
-        logContent.className = 'adm-log-wrapper'; // Добавим класс для удобства
-        logContent.style.cssText = "position:fixed; top:10%; left:50%; transform:translateX(-50%); width:600px; height:500px; background:#fff; border:1px solid #ccc; z-index:10000; box-shadow:0 0 20px rgba(0,0,0,0.5); display:flex; flex-direction:column;";
-        logContent.innerHTML = `
-            <div style="padding:10px; background:#eee; border-bottom:1px solid #ccc; display:flex; justify-content:space-between;"><strong>Debug Log</strong><button onclick="this.closest('.adm-log-wrapper').remove()">✕</button></div>
-            <pre id="logArea" style="flex:1; overflow:auto; padding:10px; font-family:monospace; font-size:12px;"></pre>
-            <div style="padding:10px; border-top:1px solid #ccc; text-align:right; display:flex; justify-content:flex-end; gap:10px;">
-                <button class="adm-btn" onclick="copyAndClose(this)">Копировать и закрыть</button>
-                <button class="adm-btn" onclick="clearLogs()">Очистить</button>
-            </div>
-        `;
-        document.body.appendChild(logContent);
+const bannersBySet = <?= CUtil::PhpToJSObject($bannersBySet) ?>;
+const popup = document.getElementById('preview-popup');
+const popupCrop = document.getElementById('preview-crop');
 
-        fetch('mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>')
-            .then(r => r.text())
-            .then(txt => document.getElementById('logArea').innerText = txt || 'Лог пуст');
-    }
+document.getElementById('searchSet').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    document.querySelectorAll('.set-card').forEach(card => {
+        const name = card.dataset.setName.toLowerCase();
+        card.style.display = name.includes(searchTerm) ? 'flex' : 'none';
+    });
+});
 
-    function clearLogs() {
-        fetch('mycompany_banner_ajax_save_banner.php', {
-            method: 'POST',
-            body: new URLSearchParams({action:'clear_log', sessid:'<?=bitrix_sessid()?>'})
-        }).then(() => {
-            const area = document.getElementById('logArea');
-            if(area) area.innerText = 'Очищено';
+function deleteSet(id, name, event) {
+    event.stopPropagation(); // Prevent card click
+    if (confirm(`Вы уверены, что хотите удалить набор "${name}"? Это действие необратимо и удалит все баннеры в наборе.`)) {
+        BX.ajax.runAction('mycompany:banner.api.admin.deleteSet', {
+            data: { setId: id }
+        }).then(function (response) {
+            if (response.data.success) {
+                const card = document.querySelector(`.set-card[data-set-id="${id}"]`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => card.remove(), 300);
+                }
+            } else {
+                alert('Ошибка удаления: ' + response.errors.map(e => e.message).join(', '));
+            }
+        }).catch(function (response) {
+            alert('Ошибка запроса: ' + response.errors.map(e => e.message).join(', '));
         });
     }
+}
 
-    function copyAndClose(btn) {
-        const text = document.getElementById('logArea').innerText;
-        
-        // Создаем временный элемент для копирования (работает надежнее navigator.clipboard)
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";  // Чтобы не скроллило страницу
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        
-        try {
-            document.execCommand('copy');
-            btn.innerText = 'Скопировано!';
-            // Закрываем окно через 0.5 сек
-            setTimeout(() => {
-                const wrapper = btn.closest('.adm-log-wrapper');
-                if (wrapper) wrapper.remove();
-            }, 500);
-        } catch (err) {
-            alert('Не удалось скопировать автоматически');
-        }
-        
-        document.body.removeChild(textarea);
-    }
-
-    const setsData = <?=json_encode(array_values($bannersBySet))?>;
-    const setsDataById = <?=json_encode($bannersBySet)?>;
-    const popup = document.getElementById('preview-popup');
-    const popupCrop = document.getElementById('preview-crop');
-
-    function createSet() {
-        document.getElementById('create-popup').style.display = 'flex';
-        document.getElementById('newSetName').focus();
-    }
-    
-    function doCreate() {
-        const btn = document.querySelector('#create-popup .adm-btn-save');
-        const nameInp = document.getElementById('newSetName');
-        
-        if(!nameInp.value) { nameInp.style.border='1px solid red'; return; }
-        
-        // Блокируем интерфейс
-        btn.disabled = true;
-        btn.innerText = 'Создание...';
-
-        const fd = new FormData();
-        fd.append('action', 'create_set');
-        fd.append('name', nameInp.value);
-        fd.append('category_mode', document.getElementById('newSetAuto').checked ? 'Y' : 'N');
-        fd.append('sessid', '<?=bitrix_sessid()?>');
-
-        fetch('mycompany_banner_ajax_save_banner.php', {method:'POST', body:fd})
-            .then(r => r.json())
-            .then(res => {
-                if(res.success) window.location = 'mycompany_banner_constructor.php?set_id=' + res.id + '&lang=<?=LANG?>';
-                else { 
-                    alert(res.errors.join('\n')); 
-                    btn.disabled = false; 
-                    btn.innerText = 'Создать'; 
-                }
-            });
-    }
-
-    function showPreview(setId, el) {
-        const banners = setsDataById[setId] || [];
-        popupCrop.innerHTML = '';
+let previewTimeout;
+function showPreview(setId, el, event) {
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(() => {
+        const banners = bannersBySet[setId] || [];
+        if (!popupCrop) return;
+        popupCrop.innerHTML = ''; // Clear
 
         const grid = document.createElement('div');
         grid.id = 'preview-grid';
 
-        for (let i = 0; i < 8; i++) {
-            const slotIndex = i + 1;
-            const b = banners.find(banner => banner.SLOT_INDEX == slotIndex);
+        for (let i = 1; i <= 8; i++) {
+            const b = banners.find(banner => banner.SLOT_INDEX == i);
             const slot = document.createElement('div');
-            
-            slot.dataset.i = slotIndex;
+            slot.dataset.i = i;
             slot.className = 'slot';
 
             if (b) {
@@ -282,46 +449,106 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     slot.style.backgroundPosition = `${b.IMG_POS_X || 50}% ${b.IMG_POS_Y || 50}%`;
                 }
                 
-                const slotContentDiv = document.createElement('div');
-                slotContentDiv.className = `slot-content text-${b.TEXT_ALIGN || 'center'}`;
-                slotContentDiv.style.color = b.TEXT_COLOR || '#000';
-
-                const textWrapper = document.createElement('div');
-                textWrapper.className = 'b-text-wrapper';
+                const content = document.createElement('div');
+                content.className = `slot-content text-${b.TEXT_ALIGN || 'center'}`;
+                content.style.color = b.TEXT_COLOR || '#000';
+            
+                const wrapper = document.createElement('div');
+                wrapper.className = 'b-text-wrapper';
 
                 let innerHTML = '';
-                if (b.TITLE) innerHTML += `<div class="b-title" style="font-size: ${b.TITLE_FONT_SIZE || '18px'}">${b.TITLE}</div>`;
-                if (b.SUBTITLE) innerHTML += `<div class="b-sub" style="font-size: ${b.SUBTITLE_FONT_SIZE || '14px'}">${b.SUBTITLE}</div>`;
-                textWrapper.innerHTML = innerHTML;
+                let titleStyle = `font-size:${b.TITLE_FONT_SIZE || '22px'}; font-weight:${b.TITLE_BOLD === 'Y' ? 'bold' : 'normal'};`;
+                let subStyle = `font-size:${b.SUBTITLE_FONT_SIZE || '14px'}; font-weight:${b.SUBTITLE_BOLD === 'Y' ? 'bold' : 'normal'};`;
 
-                slotContentDiv.appendChild(textWrapper);
-                slot.appendChild(slotContentDiv);
+                if(b.TITLE) innerHTML += `<div class="b-title" style="${titleStyle}">${b.TITLE}</div>`;
+                if(b.SUBTITLE) innerHTML += `<div class="b-sub" style="${subStyle}">${b.SUBTITLE}</div>`;
+                wrapper.innerHTML = innerHTML;
+                content.appendChild(wrapper);
+                slot.appendChild(content);
 
             } else {
-                slot.innerHTML = `<span>${slotIndex}</span>`;
-                slot.style.color = '#aaa';
+                slot.innerHTML = `<span>${i}</span>`;
             }
             grid.appendChild(slot);
         }
         popupCrop.appendChild(grid);
-
-        const rect = el.getBoundingClientRect();
-        popup.style.display = 'block';
         
-        // ЖЕСТКО СПРАВА
-        popup.style.left = (rect.right + 15) + 'px';
-        // Чуть выше середины курсора
-        let topPos = window.scrollY + rect.top - 20;
-        // Проверка, чтобы не улетел вниз экрана
-        if (topPos + popup.offsetHeight > window.scrollY + window.innerHeight) {
-            topPos = window.scrollY + window.innerHeight - popup.offsetHeight - 20;
-        }
-        popup.style.top = topPos + 'px'; 
-    }
+        popup.style.display = 'block';
+        popup.style.opacity = '0';
 
-    function hidePreview() {
-        popup.style.display = 'none';
+        const popupWidth = 500;
+        const isRightSide = (window.innerWidth - event.clientX) < (popupWidth + 20);
+
+        let top = event.clientY + 15;
+        let left = event.clientX + 15;
+
+        if (isRightSide) {
+            left = event.clientX - popupWidth - 15;
+        }
+
+        if (top + popup.offsetHeight > window.innerHeight) {
+            top = window.innerHeight - popup.offsetHeight - 10;
+        }
+        
+        popup.style.top = top + 'px';
+        popup.style.left = left + 'px';
+        
+        requestAnimationFrame(() => {
+            popup.style.opacity = '1';
+        });
+
+    }, 100); 
+}
+
+function hidePreview() {
+    clearTimeout(previewTimeout);
+    popup.style.opacity = '0';
+    setTimeout(() => {
+        if (popup.style.opacity === '0') {
+            popup.style.display = 'none';
+        }
+    }, 150);
+}
+
+function createSet() {
+    document.getElementById('create-popup').style.display = 'flex';
+    document.getElementById('newSetName').focus();
+}
+
+function doCreate() {
+    const btn = document.getElementById('doCreateBtn');
+    const nameInput = document.getElementById('newSetName');
+    if (!nameInput.value.trim()) {
+        nameInput.style.borderColor = 'red';
+        return;
     }
+    nameInput.style.borderColor = '';
+
+    btn.disabled = true;
+    btn.textContent = 'Создание...';
+
+    const fd = new FormData();
+    fd.append('action', 'create_set');
+    fd.append('name', nameInput.value);
+    fd.append('category_mode', document.getElementById('newSetAuto').checked ? 'Y' : 'N');
+    fd.append('sessid', '<?=bitrix_sessid()?>');
+
+    fetch('mycompany_banner_ajax_save_banner.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                window.location = 'mycompany_banner_constructor.php?set_id=' + res.id + '&lang=<?=LANG?>';
+            } else {
+                alert('Ошибка: ' + (res.errors ? res.errors.join('\n') : 'Неизвестная ошибка.'));
+                btn.disabled = false;
+                btn.textContent = 'Создать';
+            }
+        }).catch(() => {
+            alert('Сетевая ошибка при создании набора.');
+            btn.disabled = false;
+            btn.textContent = 'Создать';
+        });
+}
 </script>
 
 <?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>

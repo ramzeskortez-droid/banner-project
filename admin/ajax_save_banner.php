@@ -173,6 +173,26 @@ try {
             $resp['errors'] = $res->getErrorMessages();
         }
     }
+    elseif ($action === 'delete_set') {
+        $setId = (int)$req->getPost('set_id');
+        if ($setId > 0) {
+            // Сначала удаляем все баннеры, связанные с этим набором
+            $banners = BannerTable::getList(['filter' => ['SET_ID' => $setId], 'select' => ['ID']])->fetchAll();
+            foreach ($banners as $banner) {
+                BannerTable::delete($banner['ID']);
+            }
+
+            // Затем удаляем сам набор
+            $res = BannerSetTable::delete($setId);
+            if ($res->isSuccess()) {
+                $resp['success'] = true;
+            } else {
+                $resp['errors'] = $res->getErrorMessages();
+            }
+        } else {
+            $resp['errors'][] = 'Invalid set_id';
+        }
+    }
     elseif ($action === 'save_slot') {
         $data = [
             'SET_ID'             => $setId,

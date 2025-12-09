@@ -18,6 +18,9 @@ class BannerSetTable extends DataManager
             new BooleanField('USE_GLOBAL_TEXT_COLOR', ['values' => ['N', 'Y'], 'default_value' => 'N']),
             new StringField('GLOBAL_TEXT_COLOR', ['default_value' => '#000000']),
             new \Bitrix\Main\ORM\Fields\BooleanField('CATEGORY_MODE', ['values' => ['N', 'Y'], 'default_value' => 'Y']),
+            new \Bitrix\Main\Entity\DatetimeField('DATE_CREATE', [
+                'default_value' => function() { return new \Bitrix\Main\Type\DateTime(); }
+            ]),
         ];
     }
 }
