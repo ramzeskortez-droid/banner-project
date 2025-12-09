@@ -111,7 +111,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .popup-body { padding: 0; overflow-y: auto; flex: 1; }
     .popup-footer { padding: 15px 25px; background: #f7f7f7; text-align: right; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
 
-    .adj-col-left { width: 450px; flex-shrink: 0; background: #f8f9fa; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; }
+    .adj-col-left { width: 550px; flex-shrink: 0; background: #f8f9fa; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; }
     .adj-col-right { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #e9ecef; padding: 20px; box-sizing: border-box; }
     #adjFullGridWrapper { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; }
     #adjFullGrid { transform-origin: center center; pointer-events: none; box-shadow: 0 0 20px rgba(0,0,0,0.2); background: #fff; }
@@ -735,7 +735,7 @@ function openAdjuster() {
         const wW = wrapper.clientWidth - 40;
         const wH = wrapper.clientHeight - 40;
         const gW = cloneGrid.scrollWidth;
-        const gH = cloneGrid.scrollHeight;
+        const gH = cloneGrit.scrollHeight;
         if (gW > 0 && gH > 0) {
             const scale = Math.min(wW / gW, wH / gH);
             cloneGrid.style.transform = `scale(${scale})`;
@@ -744,6 +744,18 @@ function openAdjuster() {
 
     updateAdjusterPreview();
     document.getElementById('adjusterOverlay').style.display = 'flex';
+    
+    adjuster.preview = document.getElementById('adjPreview'); // Обновляем ссылку на новый элемент в DOM
+    // Восстанавливаем логику перетаскивания
+    adjuster.preview.onmousedown = function(e) {
+        e.preventDefault();
+        adjuster.isDragging = true;
+        adjuster.startX = e.clientX;
+        adjuster.startY = e.clientY;
+        adjuster.initPosX = parseFloat(adjuster.posX.value);
+        adjuster.initPosY = parseFloat(adjuster.posY.value);
+        adjuster.preview.style.cursor = 'grabbing';
+    };
 }
 
 function closeAdjuster() { document.getElementById('adjusterOverlay').style.display = 'none'; }
@@ -799,8 +811,8 @@ adjuster.preview.onmousedown = function(e) {
 
 window.onmousemove = function(e) { 
     if(!adjuster.isDragging) return;
-    let newX = adjuster.initPosX - ((e.clientX - adjuster.startX) * 0.2); 
-    let newY = adjuster.initPosY - ((e.clientY - startY) * 0.2); 
+    let newX = adjuster.initPosX + ((e.clientX - adjuster.startX) * 0.2); 
+    let newY = adjuster.initPosY + ((e.clientY - adjuster.startY) * 0.2); 
     adjuster.posX.value = Math.max(0, Math.min(100, newX)).toFixed(2); 
     adjuster.posY.value = Math.max(0, Math.min(100, newY)).toFixed(2); 
     updateAdjusterPreview(); 
