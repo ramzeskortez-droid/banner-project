@@ -591,10 +591,12 @@ function renderGrid() {
             content.appendChild(wrapper);
             el.appendChild(content);
             el.onclick = () => openEditPopup(i);
+            el.style.cursor = 'pointer';
         } else {
             // This slot is empty, show a placeholder
             el.innerHTML = `<div class="slot-placeholder">Блок #${i}<br><small>Настроить</small></div>`;
             el.onclick = () => openEditPopup(i);
+            el.style.cursor = 'pointer';
         }
         grid.appendChild(el);
     }
@@ -699,8 +701,7 @@ const adjuster = {
     startX: 0, 
     startY: 0, 
     initPosX: 50, 
-    initPosY: 50,
-};
+
 
 function setPos(axis, val) {
     if (axis === 'x') {
