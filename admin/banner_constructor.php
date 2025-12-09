@@ -66,7 +66,13 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 <style>
     .construct-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .construct-wrap { max-width: 1400px; margin: 0 auto; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    .grid { 
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 15px; 
+        width: 100%; 
+        box-sizing: border-box;
+    }
 
     .slot {
         position: relative;
@@ -76,7 +82,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         overflow: hidden;
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat; /* <-- Добавлено */
+        background-repeat: no-repeat;
+        min-height: 200px; /* Fallback */
         transition: transform 0.2s, box-shadow 0.2s;
     }
     .slot:hover {
@@ -86,8 +93,15 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         border-color: #999;
     }
 
-    .slot[data-i="1"], .slot[data-i="2"], .slot[data-i="3"], .slot[data-i="4"] { grid-column: span 2; height: 300px; }
-    .slot[data-i="5"], .slot[data-i="6"], .slot[data-i="7"], .slot[data-i="8"] { grid-column: span 1; height: 200px; }
+    /* ВОССТАНОВЛЕННЫЕ СТИЛИ ИЗ 1.0.3 (Ключевой момент видимости) */
+    .slot[data-i="1"], .slot[data-i="2"], .slot[data-i="3"], .slot[data-i="4"] { 
+        grid-column: span 2; 
+        height: 300px; 
+    }
+    .slot[data-i="5"], .slot[data-i="6"], .slot[data-i="7"], .slot[data-i="8"] { 
+        grid-column: span 1; 
+        height: 200px; 
+    }
     
     .slot-content { height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 20px; box-sizing: border-box; }
     .b-text-wrapper { display: inline-block; padding: 10px 15px; border-radius: 6px; transition: background-color 0.1s linear; }
@@ -685,12 +699,6 @@ const adjuster = {
     startX: 0, 
     startY: 0, 
     initPosX: 50, 
-    initPosY: 50,
-};
-
-// --- Event Listeners ---
-
-// Auto-fill form fields when a section is selected
     initPosY: 50,
 };
 

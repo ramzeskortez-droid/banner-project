@@ -1,27 +1,7 @@
 <?php
-/**
- * Controller for handling all AJAX requests from the banner module's admin interface.
- * Maps UI actions to database operations.
- *
- * Terminology Mapping:
- * - UI "Баннер" (Banner)    <=> DB `mycompany_banner_set` (BannerSetTable)
- * - UI "Блок" (Block)      <=> DB `mycompany_banner` (BannerTable)
- */
-
 define("NO_KEEP_STATISTIC", true);
 define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
-
-function writeDebugLog($data) {
-    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
-    $log = date('Y-m-d H:i:s') . " | User: " . (is_object($GLOBALS['USER']) && $GLOBALS['USER']->IsAuthorized() ? $GLOBALS['USER']->GetID() : 'Guest') . "\n";
-    $log .= "Request: " . print_r($data, true) . "\n";
-    $log .= "------------------------\n";
-    file_put_contents($file, $log, FILE_APPEND);
-}
-
-// Call at the very beginning of the script to log all incoming requests
-writeDebugLog($_REQUEST);
 
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
@@ -29,6 +9,34 @@ use MyCompany\Banner\BannerTable;
 use MyCompany\Banner\BannerSetTable;
 
 header('Content-Type: application/json');
+
+// --- NEW LOGGING LOGIC ---
+// ЛОГИРОВАНИЕ (В самом начале)
+function writeDebugLog($data) {
+    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+    $logEntry = date('Y-m-d H:i:s') . " | " . print_r($data, true) . "\n----------------\n";
+    file_put_contents($file, $logEntry, FILE_APPEND);
+}
+
+// Get request object and action early
+$req = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
+$action = $req->get('action') ?: $req->getPost('action');
+
+// ОБРАБОТЧИК ЛОГОВ (Должен быть тут, чтобы не вернуть JSON ошибки внизу)
+if ($action === 'get_log') {
+    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+    if (file_exists($file)) {
+        echo file_get_contents($file);
+    } else {
+        echo "Лог файл пуст или не создан.";
+    }
+    die(); // Важно! Прерываем скрипт
+}
+
+// Пишем лог только если это не чтение лога
+writeDebugLog($_REQUEST);
+// --- END NEW LOGGING LOGIC ---
+
 $resp = ['success' => false, 'errors' => []];
 
 // Security check
@@ -40,8 +48,7 @@ if (!check_bitrix_sessid()) {
 
 try {
     Loader::includeModule('mycompany.banner');
-    $req = Application::getInstance()->getContext()->getRequest();
-    $action = $req->get('action') ?: $req->getPost('action');
+    // $req and $action are already defined above
     $setId = (int)$req->getPost('set_id');
 
     // Action: Create a new Banner (Set)
