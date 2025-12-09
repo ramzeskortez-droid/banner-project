@@ -91,10 +91,30 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 
     .overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); z-index: 9990; display: none; align-items: center; justify-content: center; }
     #adjusterOverlay { z-index: 9999; }
+    
+    #adjusterOverlay .popup {
+        width: 95%;
+        max-width: 1600px;
+        height: 90vh;
+    }
+
     .popup { background: #fdfdfd; width: 800px; max-height: 95vh; display: flex; flex-direction: column; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    
+    #adjusterOverlay .popup-body {
+        display: flex;
+        height: 100%;
+        overflow: hidden;
+        padding: 0;
+    }
+
     .popup-header { padding: 15px 25px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .popup-body { padding: 0; overflow-y: auto; flex: 1; }
     .popup-footer { padding: 15px 25px; background: #f7f7f7; text-align: right; border-top: 1px solid #eee; border-radius: 0 0 8px 8px; }
+
+    .adj-col-left { width: 450px; flex-shrink: 0; background: #f8f9fa; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; }
+    .adj-col-right { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #e9ecef; padding: 20px; box-sizing: border-box; }
+    #adjFullGridWrapper { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; }
+    #adjFullGrid { transform-origin: center center; pointer-events: none; box-shadow: 0 0 20px rgba(0,0,0,0.2); background: #fff; }
 
     .settings-group { padding: 0; border: 1px solid #bbdefb; overflow: hidden; margin-bottom: 20px; border-radius: 6px; background: #fff; }
     .group-title { background: #e3f2fd; color: #1565c0; padding: 15px 20px; font-weight: bold; border-bottom: 1px solid #90caf9; margin: 0 0 15px 0; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
@@ -135,6 +155,14 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 }
 /* Маленькие кнопки в попапе */
 .local-fmt .fmt-icon { width: 24px; height: 24px; font-size: 12px; }
+
+.pos-controls { display: flex; gap: 15px; margin-bottom: 15px; }
+.pos-group { display: flex; flex-direction: column; gap: 5px; }
+.pos-group label { font-size: 11px; font-weight: bold; color: #666; }
+.btn-row { display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+.pos-btn { flex: 1; border: none; background: #fff; cursor: pointer; padding: 5px 10px; font-size: 12px; border-right: 1px solid #eee; }
+.pos-btn:last-child { border-right: none; }
+.pos-btn:hover { background: #f0f0f0; }
 </style>
 
 <div class="construct-wrap">
@@ -294,13 +322,36 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 </div></div>
 
 <!-- ADJUSTER POPUP -->
-<div id="adjusterOverlay" class="overlay"><div class="popup" style="width:800px;">
+<div id="adjusterOverlay" class="overlay"><div class="popup">
     <div class="popup-header"><h3>Настройка отображения <small>(Тяните мышкой для сдвига)</small></h3></div>
     <div class="popup-body">
-        <div class="adjust-preview" id="adjPreview"><div class="adjust-text-overlay" id="adjustTextOverlay"></div></div>
-        <div class="adjust-controls group-content">
-            <div class="form-row"><label>Масштаб: <span id="scaleVal">100</span>%</label><input type="range" id="adjScale" min="10" max="250" value="100" class="form-control"></div>
-            <input type="hidden" id="adjPosX"><input type="hidden" id="adjPosY">
+        <div class="adj-col-left">
+            <div class="adjust-preview" id="adjPreview"><div class="adjust-text-overlay" id="adjustTextOverlay"></div></div>
+            <div class="adjust-controls group-content" style="overflow-y: auto;">
+                <div class="pos-controls">
+                    <div class="pos-group">
+                        <label>Горизонталь:</label>
+                        <div class="btn-row">
+                            <button type="button" class="pos-btn" onclick="setPos('x', 0)">Слева</button>
+                            <button type="button" class="pos-btn" onclick="setPos('x', 50)">Центр</button>
+                            <button type="button" class="pos-btn" onclick="setPos('x', 100)">Справа</button>
+                        </div>
+                    </div>
+                    <div class="pos-group">
+                        <label>Вертикаль:</label>
+                        <div class="btn-row">
+                            <button type="button" class="pos-btn" onclick="setPos('y', 0)">Верх</button>
+                            <button type="button" class="pos-btn" onclick="setPos('y', 50)">Центр</button>
+                            <button type="button" class="pos-btn" onclick="setPos('y', 100)">Низ</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row"><label>Масштаб: <span id="scaleVal">100</span>%</label><input type="range" id="adjScale" min="10" max="250" value="100" class="form-control"></div>
+                <input type="hidden" id="adjPosX"><input type="hidden" id="adjPosY">
+            </div>
+        </div>
+        <div class="adj-col-right">
+            <div id="adjFullGridWrapper"></div>
         </div>
     </div>
     <div class="popup-footer"><button type="button" class="adm-btn adm-btn-save" onclick="applyAdjustments()">Применить</button><button type="button" class="adm-btn" onclick="closeAdjuster()">Отмена</button></div>
@@ -605,16 +656,38 @@ function openPopup(slotIndex) {
 }
 function closePopup() { document.getElementById('popup').style.display = 'none'; }
 
-const adjuster = { preview: document.getElementById('adjPreview'), scale: document.getElementById('adjScale'), posX: document.getElementById('adjPosX'), posY: document.getElementById('adjPosY'), isDragging: false, startX: 0, startY: 0, initPosX: 50, initPosY: 50 };
+const adjuster = { 
+    preview: document.getElementById('adjPreview'),
+    scale: document.getElementById('adjScale'), 
+    posX: document.getElementById('adjPosX'), 
+    posY: document.getElementById('adjPosY'), 
+    isDragging: false, 
+    startX: 0, 
+    startY: 0, 
+    initPosX: 50, 
+    initPosY: 50,
+};
+
+function setPos(axis, val) {
+    if (axis === 'x') {
+        adjuster.posX.value = val;
+    } else {
+        adjuster.posY.value = val;
+    }
+    updateAdjusterPreview();
+}
+
 function openAdjuster() {
     const slotIndex = document.getElementById('slotIndex').value;
     const visualEl = document.querySelector(`.slot[data-slot-index='${slotIndex}']`);
     if (!visualEl) { console.error('Could not find visual element for slot', slotIndex); return; }
 
-    let imgUrl = document.getElementById('inpImgUrl').value; const file = document.getElementById('inpFile').files[0];
+    let imgUrl = document.getElementById('inpImgUrl').value; 
+    const file = document.getElementById('inpFile').files[0];
     if(file) imgUrl = URL.createObjectURL(file);
     if(!imgUrl) { alert('Сначала выберите изображение'); return; }
 
+    // Настраиваем левое превью
     adjuster.preview.style.backgroundImage = `url(${imgUrl})`;
     const contentToClone = visualEl.querySelector('.slot-content');
     if (contentToClone) {
@@ -622,44 +695,123 @@ function openAdjuster() {
         document.getElementById('adjustTextOverlay').appendChild(contentToClone.cloneNode(true));
     }
 
-    const curScale = document.getElementById('inpScale').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_SCALE || 100;
-    const curX = document.getElementById('inpPosX').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_X || 50;
-    const curY = document.getElementById('inpPosY').value || (banners[document.getElementById('slotIndex').value] || {}).IMG_POS_Y || 50;
+    const currentBanner = banners[slotIndex] || {};
+    const rawX = document.getElementById('inpPosX').value !== '' ? document.getElementById('inpPosX').value : currentBanner.IMG_POS_X;
+    const rawY = document.getElementById('inpPosY').value !== '' ? document.getElementById('inpPosY').value : currentBanner.IMG_POS_Y;
+    const rawScale = document.getElementById('inpScale').value !== '' ? document.getElementById('inpScale').value : currentBanner.IMG_SCALE;
 
+    const curX = (rawX !== undefined && rawX !== null && rawX !== '') ? parseFloat(rawX) : 50;
+    const curY = (rawY !== undefined && rawY !== null && rawY !== '') ? parseFloat(rawY) : 50;
+    const curScale = (rawScale !== undefined && rawScale !== null && rawScale !== '') ? parseFloat(rawScale) : 100;
+    
     adjuster.scale.value = curScale;
     adjuster.posX.value = curX;
     adjuster.posY.value = curY;
     
+    // --- Логика для правой колонки (весь баннер) ---
+
+    // 1. Подготовка правой части
+    const wrapper = document.getElementById('adjFullGridWrapper');
+    wrapper.innerHTML = ''; // Очистка
+    const mainGrid = document.getElementById('grid');
+    const cloneGrid = mainGrid.cloneNode(true);
+    cloneGrid.id = 'adjFullGrid';
+    cloneGrid.style.transform = 'none'; // Сброс, масштаб зададим позже
+    // Отключаем клики
+    cloneGrid.querySelectorAll('.slot').forEach(el => el.onclick = null);
+    wrapper.appendChild(cloneGrid);
+
+    // 2. Установка текущей картинки
+    const currentImgUrl = adjuster.preview.style.backgroundImage;
+    const targetSlot = cloneGrid.querySelector(`.slot[data-slot-index="${slotIndex}"]`);
+    if(targetSlot) {
+        targetSlot.style.backgroundImage = currentImgUrl;
+        targetSlot.style.zIndex = 10;
+        targetSlot.style.boxShadow = "0 0 0 3px #ff5722, inset 0 0 15px rgba(0,0,0,0.3)";
+    }
+
+    // 3. Масштабирование
+    setTimeout(() => {
+        const wW = wrapper.clientWidth - 40;
+        const wH = wrapper.clientHeight - 40;
+        const gW = cloneGrid.scrollWidth;
+        const gH = cloneGrid.scrollHeight;
+        if (gW > 0 && gH > 0) {
+            const scale = Math.min(wW / gW, wH / gH);
+            cloneGrid.style.transform = `scale(${scale})`;
+        }
+    }, 50);
+
     updateAdjusterPreview();
     document.getElementById('adjusterOverlay').style.display = 'flex';
 }
+
 function closeAdjuster() { document.getElementById('adjusterOverlay').style.display = 'none'; }
-function updateAdjusterPreview() { adjuster.preview.style.backgroundSize = `${adjuster.scale.value}%`; adjuster.preview.style.backgroundPosition = `${adjuster.posX.value}% ${adjuster.posY.value}%`; document.getElementById('scaleVal').innerText = adjuster.scale.value; }
-function applyAdjustments() {
-    const slotIndex = document.getElementById('slotIndex').value;
-    
+
+function updateAdjusterPreview() {
     const scale = adjuster.scale.value;
     const posX = adjuster.posX.value;
     const posY = adjuster.posY.value;
 
-    document.getElementById('inpScale').value = scale;
-    document.getElementById('inpPosX').value = posX;
-    document.getElementById('inpPosY').value = posY;
+    // Обновление левого превью
+    adjuster.preview.style.backgroundSize = `${scale}%`;
+    adjuster.preview.style.backgroundPosition = `${posX}% ${posY}%`;
+    document.getElementById('scaleVal').innerText = scale;
+
+    // Синхронизация правого грида
+    const slotIndex = document.getElementById('slotIndex').value;
+    const liveSlot = document.querySelector(`#adjFullGrid .slot[data-slot-index="${slotIndex}"]`);
+    if(liveSlot) {
+        liveSlot.style.backgroundSize = `${scale}%`;
+        liveSlot.style.backgroundPosition = `${posX}% ${posY}%`;
+        liveSlot.style.backgroundRepeat = 'no-repeat';
+    }
+}
+
+function applyAdjustments() {
+    document.getElementById('inpScale').value = adjuster.scale.value;
+    document.getElementById('inpPosX').value = adjuster.posX.value;
+    document.getElementById('inpPosY').value = adjuster.posY.value;
     
+    const slotIndex = document.getElementById('slotIndex').value;
     if (!banners[slotIndex]) banners[slotIndex] = { SLOT_INDEX: slotIndex };
     
-    banners[slotIndex].IMG_SCALE = scale;
-    banners[slotIndex].IMG_POS_X = posX;
-    banners[slotIndex].IMG_POS_Y = posY;
+    banners[slotIndex].IMG_SCALE = adjuster.scale.value;
+    banners[slotIndex].IMG_POS_X = adjuster.posX.value;
+    banners[slotIndex].IMG_POS_Y = adjuster.posY.value;
     
     render();
-    
     closeAdjuster();
 }
+
 adjuster.scale.addEventListener('input', updateAdjusterPreview);
-adjuster.preview.onmousedown = function(e) { e.preventDefault(); adjuster.isDragging = true; adjuster.startX = e.clientX; adjuster.startY = e.clientY; adjuster.initPosX = parseFloat(adjuster.posX.value); adjuster.initPosY = parseFloat(adjuster.posY.value); adjuster.preview.style.cursor = 'grabbing'; };
-window.onmousemove = function(e) { if(!adjuster.isDragging) return; let newX = adjuster.initPosX - ((e.clientX - adjuster.startX) * 0.2); let newY = adjuster.initPosY - ((e.clientY - adjuster.startY) * 0.2); adjuster.posX.value = Math.max(0, Math.min(100, newX)); adjuster.posY.value = Math.max(0, Math.min(100, newY)); updateAdjusterPreview(); };
-window.onmouseup = function() { adjuster.isDragging = false; adjuster.preview.style.cursor = 'grab'; };
+
+// Drag-n-drop логика для левого превью
+adjuster.preview.onmousedown = function(e) { 
+    e.preventDefault(); 
+    adjuster.isDragging = true; 
+    adjuster.startX = e.clientX; 
+    adjuster.startY = e.clientY; 
+    adjuster.initPosX = parseFloat(adjuster.posX.value); 
+    adjuster.initPosY = parseFloat(adjuster.posY.value); 
+    adjuster.preview.style.cursor = 'grabbing'; 
+};
+
+window.onmousemove = function(e) { 
+    if(!adjuster.isDragging) return;
+    let newX = adjuster.initPosX - ((e.clientX - adjuster.startX) * 0.2); 
+    let newY = adjuster.initPosY - ((e.clientY - startY) * 0.2); 
+    adjuster.posX.value = Math.max(0, Math.min(100, newX)).toFixed(2); 
+    adjuster.posY.value = Math.max(0, Math.min(100, newY)).toFixed(2); 
+    updateAdjusterPreview(); 
+};
+
+window.onmouseup = function() { 
+    if (adjuster.isDragging) {
+        adjuster.isDragging = false; 
+        adjuster.preview.style.cursor = 'grab'; 
+    }
+};
 
 function initGlobalSettings() {
     if(!globalSettings) return;
