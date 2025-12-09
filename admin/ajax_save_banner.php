@@ -12,10 +12,12 @@ header('Content-Type: application/json');
 
 // --- NEW LOGGING LOGIC ---
 // ЛОГИРОВАНИЕ (В самом начале)
-function writeDebugLog($data) {
-    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
-    $logEntry = date('Y-m-d H:i:s') . " | " . print_r($data, true) . "\n----------------\n";
-    file_put_contents($file, $logEntry, FILE_APPEND);
+if (!function_exists('writeDebugLog')) {
+    function writeDebugLog($data) {
+        $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+        $logEntry = date('Y-m-d H:i:s') . " | " . print_r($data, true) . "\n----------------\n";
+        file_put_contents($file, $logEntry, FILE_APPEND);
+    }
 }
 
 // Get request object and action early
@@ -31,6 +33,12 @@ if ($action === 'get_log') {
         echo "Лог файл пуст или не создан.";
     }
     die(); // Важно! Прерываем скрипт
+}
+if ($action === 'clear_log') {
+    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
+    file_put_contents($file, '');
+    echo "Cleared";
+    die();
 }
 
 // Пишем лог только если это не чтение лога

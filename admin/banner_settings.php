@@ -438,73 +438,64 @@ const popupCrop = document.getElementById('preview-crop');
 /**
  * Live search functionality. Filters banners by name.
  */
-/**
- * Displays a modal window with debug logs fetched via AJAX.
- */
 function showLogs() {
     // Удаляем старое окно если есть
-    const old = document.getElementById('logModalWrapper');
-    if(old) old.remove();
+    const existing = document.getElementById('logModalOverlay');
+    if (existing) existing.remove();
 
-    const logContent = document.createElement('div');
-    logContent.id = 'logModalWrapper';
-    logContent.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center;";
+    // Создаем оверлей
+    const overlay = document.createElement('div');
+    overlay.id = 'logModalOverlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; display:flex; align-items:center; justify-content:center;';
 
-    logContent.innerHTML = `
-        <div style="background:#fff; width:800px; height:600px; display:flex; flex-direction:column; border-radius:8px; box-shadow:0 5px 20px rgba(0,0,0,0.3); overflow:hidden;">
-            <div style="padding:15px; background:#f5f5f5; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">Логи отладки</h3>
-                <button onclick="document.getElementById('logModalWrapper').remove()" style="border:none; background:none; font-size:20px; cursor:pointer;"&gt;✕&lt;/button&gt;
-            </div>
-            <div style="flex:1; overflow:auto; padding:15px; background:#2b2b2b; color:#0f0; font-family:monospace;" id="logArea">Загрузка...</div>
-            <div style="padding:15px; border-top:1px solid #ddd; background:#fff; display:flex; justify-content:flex-end; gap:10px;">
-                <button class="adm-btn" onclick="copyLogText(this)">Скопировать</button>
-                <button class="adm-btn" onclick="clearLogs()">Очистить</button>
-                <button class="adm-btn" onclick="document.getElementById('logModalWrapper').remove()">Закрыть</button>
-            </div>
+    // Создаем окно
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:#fff; width:900px; height:600px; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.3); overflow:hidden; font-family: sans-serif;';
+
+    // Шапка
+    modal.innerHTML = `
+        <div style="padding:15px 20px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; background:#f8f9fa;">
+            <h3 style="margin:0; font-size:18px; color:#333;">Логи отладки</h3>
+            <button onclick="document.getElementById('logModalOverlay').remove()" style="border:none; background:none; font-size:24px; cursor:pointer; color:#999;">&times;</button>
+        </div>
+        <div style="flex:1; position:relative; background:#2d2d2d;">
+            <textarea id="logTextarea" readonly style="width:100%; height:100%; border:none; background:transparent; color:#0f0; padding:15px; font-family:monospace; font-size:13px; resize:none; box-sizing:border-box; outline:none;"></textarea>
+        </div>
+        <div style="padding:15px 20px; border-top:1px solid #eee; background:#fff; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="adm-btn" onclick="copyLogContent(this)">📋 Скопировать</button>
+            <button class="adm-btn" onclick="clearLogContent()">🗑 Очистить</button>
+            <button class="adm-btn" onclick="document.getElementById('logModalOverlay').remove()">Закрыть</button>
         </div>
     `;
-    document.body.appendChild(logContent);
 
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Загрузка данных
     fetch('mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>')
         .then(r => r.text())
-        .then(txt => document.getElementById('logArea').innerText = txt);
+        .then(text => {
+            document.getElementById('logTextarea').value = text || 'Лог файл пуст.';
+        });
 }
 
-function copyLogText(btn) {
-    const text = document.getElementById('logArea').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        const oldText = btn.innerText;
-        btn.innerText = "Скопировано!";
-        setTimeout(() => btn.innerText = oldText, 2000);
-    }).catch(err => {
-        // Фолбэк для http (не secure context)
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        btn.innerText = "Скопировано!";
+function copyLogContent(btn) {
+    const text = document.getElementById('logTextarea');
+    text.select();
+    document.execCommand('copy');
+    const original = btn.innerHTML;
+    btn.innerHTML = '✅ Скопировано!';
+    setTimeout(() => btn.innerHTML = original, 2000);
+}
+
+function clearLogContent() {
+    if(!confirm('Очистить файл логов?')) return;
+    fetch('mycompany_banner_ajax_save_banner.php', {
+        method: 'POST',
+        body: new URLSearchParams({action: 'clear_log', sessid: '<?=bitrix_sessid()?>'})
+    }).then(() => {
+        document.getElementById('logTextarea').value = 'Лог очищен.';
     });
-}
-
-/**
- * Clears the debug log file via AJAX.
- */
-function clearLogs() {
-    if (confirm('Вы уверены, что хотите очистить файл логов?')) {
-        fetch('mycompany_banner_ajax_save_banner.php?action=clear_log&sessid=<?=bitrix_sessid()?>')
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    document.getElementById('logArea').innerText = 'Лог очищен.';
-                } else {
-                    alert('Ошибка очистки лога: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'));
-                }
-            })
-            .catch(err => alert('Сетевая ошибка при очистке лога: ' + err));
-    }
 }
 
 document.getElementById('searchSet').addEventListener('input', function(e) {
