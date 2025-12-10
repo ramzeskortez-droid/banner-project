@@ -59,11 +59,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 ?>
 
 <style>
-    /* Copied from user prompt */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+    .container * {
+        box-sizing: border-box; /* Scope strictly to module container */
     }
 
     body {
@@ -334,7 +331,423 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     /* Create new set popup */
     #create-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10100; align-items: center; justify-content: center; }
     #create-popup-content { background: #fff; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
-</style>
+    .scale-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+    /* Scoped CSS for banner-popup-root */
+    #banner-popup-root * {
+        box-sizing: border-box; 
+    }
+
+    #banner-popup-root {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Overlay background */
+        z-index: 10100; /* High z-index to ensure it's on top */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    #banner-popup-root .popup-overlay {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 1400px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #banner-popup-root .popup-header {
+        background: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px 8px 0 0;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    #banner-popup-root .popup-content {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    #banner-popup-root .left-panel {
+        width: 450px;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #banner-popup-root .selected-block-preview {
+        background: #f5f5f5;
+        padding: 15px;
+        border-bottom: 2px solid #ddd;
+        min-height: 220px;
+    }
+
+    #banner-popup-root .preview-title {
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    #banner-popup-root .block-preview-container {
+        background: white;
+        border: 2px solid #3498db;
+        border-radius: 4px;
+        padding: 10px;
+        height: 170px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #banner-popup-root .block-preview-content {
+        text-align: center;
+        max-width: 90%;
+    }
+
+    #banner-popup-root .block-preview-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+
+    #banner-popup-root .block-preview-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    #banner-popup-root .block-preview-text {
+        font-size: 11px;
+        color: #666;
+        line-height: 1.3;
+    }
+
+    #banner-popup-root .settings-panel {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: #f9f9f9;
+    }
+
+    #banner-popup-root .right-panel {
+        flex: 1;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #e8e8e8;
+        overflow: auto;
+    }
+
+    #banner-popup-root .banner-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        max-width: 900px;
+        width: 100%;
+    }
+
+    #banner-popup-root .banner-block {
+        background: white;
+        border: 3px solid transparent;
+        border-radius: 6px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #banner-popup-root .banner-block:hover {
+        border-color: #95a5a6;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #banner-popup-root .banner-block.selected {
+        border-color: #3498db;
+        box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3);
+    }
+
+    #banner-popup-root .block-image {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+
+    #banner-popup-root .block-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+
+    #banner-popup-root .block-text {
+        font-size: 11px;
+        color: #666;
+        line-height: 1.4;
+        flex: 1;
+    }
+
+    #banner-popup-root .section-title {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    #banner-popup-root .settings-group {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+    }
+
+    #banner-popup-root .control-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    #banner-popup-root .control-row:last-child {
+        margin-bottom: 0;
+    }
+
+    #banner-popup-root .control-row label {
+        font-size: 13px;
+        color: #555;
+        min-width: 120px;
+    }
+
+    #banner-popup-root .control-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    #banner-popup-root .slider-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #banner-popup-root input[type="range"] {
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        background: #ddd;
+        outline: none;
+        cursor: pointer;
+    }
+
+    #banner-popup-root input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #3498db;
+        cursor: pointer;
+    }
+
+    #banner-popup-root input[type="range"]::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #3498db;
+        cursor: pointer;
+        border: none;
+    }
+
+    #banner-popup-root input[type="number"] {
+        width: 60px;
+        padding: 5px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+
+    #banner-popup-root .quick-edit-section {
+        background: #fff9e6;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        border: 1px solid #ffd966;
+    }
+
+    #banner-popup-root .quick-edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    #banner-popup-root .quick-edit-title {
+        font-size: 13px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    #banner-popup-root .format-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    #banner-popup-root .format-btn {
+        padding: 4px 10px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    #banner-popup-root .format-btn:hover {
+        background: #f0f0f0;
+    }
+
+    #banner-popup-root .format-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+
+    #banner-popup-root .text-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    #banner-popup-root .text-control-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    #banner-popup-root .color-picker {
+        width: 40px;
+        height: 28px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    #banner-popup-root .apply-btn {
+        padding: 6px 15px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    #banner-popup-root .apply-btn:hover {
+        background: #2980b9;
+    }
+
+    #banner-popup-root .alignment-grid-9 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        max-width: 180px;
+    }
+
+    #banner-popup-root .alignment-icon-btn {
+        width: 56px;
+        height: 56px;
+        border: 2px solid #ddd;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: #666;
+    }
+
+    #banner-popup-root .alignment-icon-btn:hover {
+        background: #f0f0f0;
+        border-color: #999;
+    }
+
+    #banner-popup-root .alignment-icon-btn.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+
+    #banner-popup-root .popup-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    #banner-popup-root .btn {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #banner-popup-root .btn-primary {
+        background: #7cb342;
+        color: white;
+    }
+
+    #banner-popup-root .btn-primary:hover {
+        background: #689f38;
+    }
+
+    #banner-popup-root .btn-secondary {
+        background: #e0e0e0;
+        color: #333;
+    }
+
+    #banner-popup-root .btn-secondary:hover {
+        background: #d0d0d0;
+    }
+
+    #banner-popup-root .scale-label {
+        font-size: 12px;
+        color: #666;
+    }
+&lt;/style&gt;
 
 <div class="container">
     <!-- Header -->
@@ -377,7 +790,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             ?>
             <div class="set-card" data-set-id="<?= $set['ID'] ?>" data-set-name="<?= htmlspecialcharsbx($set['NAME']) ?>" <?= $previewStyle ?> onmouseenter="showPreview(<?=$set['ID']?>, this, event)" onmouseleave="hidePreview()">
                 <div class="card-preview-overlay"></div>
-                <div class="card-content" onclick="window.location='mycompany_banner_constructor.php?set_id=<?=$set['ID']?>&lang=<?=LANG?>'">
+                &lt;div class="card-content" onclick="openConstructor(<?=$set['ID']?>)"&gt;
                     <div class="card-header">
                         <div class="card-icon">🖼️</div>
                         <div>
@@ -707,4 +1120,427 @@ function doCreate() {
 }
 </script>
 
-<?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?>
+&lt;div id="banner-popup-root" style="display:none;"&gt;
+    &lt;div class="popup-overlay"&gt;
+        &lt;div class="popup-header"&gt;
+            Конструктор баннера: &lt;span id="popup-set-id"&gt;&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class="popup-content"&gt;
+            &lt;!-- Левая панель --&gt;
+            &lt;div class="left-panel"&gt;
+                &lt;!-- Превью выбранного блока --&gt;
+                &lt;div class="selected-block-preview"&gt;
+                    &lt;div class="preview-title"&gt;Выбранный блок: &lt;span id="preview-block-title"&gt;&lt;/span&gt;&lt;/div&gt;
+                    &lt;div class="block-preview-container"&gt;
+                        &lt;div class="block-preview-content"&gt;
+                            &lt;img src="" alt="" class="block-preview-image" id="preview-block-image"&gt;
+                            &lt;div class="block-preview-title" id="preview-block-main-title"&gt;&lt;/div&gt;
+                            &lt;div class="block-preview-text" id="preview-block-main-text"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- Настройки --&gt;
+                &lt;div class="settings-panel"&gt;
+                    &lt;div class="section-title"&gt;Настройка отображения (Тяните мышкой для сдвига)&lt;/div&gt;
+
+                    &lt;!-- Быстрое редактирование --&gt;
+                    &lt;div class="quick-edit-section"&gt;
+                        &lt;div class="quick-edit-header"&gt;
+                            &lt;span class="quick-edit-title"&gt;БЫСТРОЕ РЕДАКТИРОВАНИЕ (КО ВСЕМ)&lt;/span&gt;
+                        &lt;/div&gt;
+                        
+                        &lt;div class="text-controls"&gt;
+                            &lt;div class="text-control-group"&gt;
+                                &lt;label&gt;Цвет текста:&lt;/label&gt;
+                                &lt;input type="color" class="color-picker" value="#000000" id="textColor"&gt;
+                                &lt;button class="apply-btn" onclick="applyToAll('color')"&gt;Применить ко всем&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="text-controls"&gt;
+                            &lt;div class="text-control-group" style="width: 100%;"&gt;
+                                &lt;label&gt;Размер шрифта:&lt;/label&gt;
+                                &lt;label style="min-width: auto;"&gt;Заголовок:&lt;/label&gt;
+                                &lt;input type="number" value="22" min="8" max="72" id="headerSize"&gt;
+                                &lt;label style="min-width: auto;"&gt;Анонс:&lt;/label&gt;
+                                &lt;input type="number" value="14" min="8" max="72" id="announcementSize"&gt;
+                                &lt;button class="apply-btn" onclick="applyToAll('font')"&gt;Применить&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="text-controls"&gt;
+                            &lt;div class="text-control-group" style="width: 100%; justify-content: flex-start;"&gt;
+                                &lt;label&gt;&lt;/label&gt;
+                                &lt;label style="min-width: auto;"&gt;Заголовок:&lt;/label&gt;
+                                &lt;button class="format-btn" data-format-type="header" data-format-style="bold"&gt;&lt;b&gt;B&lt;/b&gt;&lt;/button&gt;
+                                &lt;button class="format-btn" data-format-type="header" data-format-style="italic"&gt;&lt;i&gt;I&lt;/i&gt;&lt;/button&gt;
+                                &lt;button class="format-btn" data-format-type="header" data-format-style="underline"&gt;&lt;u&gt;U&lt;/u&gt;&lt;/button&gt;
+                                &lt;label style="min-width: auto; margin-left: 10px;"&gt;Анонс:&lt;/label&gt;
+                                &lt;button class="format-btn" data-format-type="announcement" data-format-style="bold"&gt;&lt;b&gt;B&lt;/b&gt;&lt;/button&gt;
+                                &lt;button class="format-btn" data-format-type="announcement" data-format-style="italic"&gt;&lt;i&gt;I&lt;/i&gt;&lt;/button&gt;
+                                &lt;button class="format-btn" data-format-type="announcement" data-format-style="underline"&gt;&lt;u&gt;U&lt;/u&gt;&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- Основные настройки блока --&gt;
+                    &lt;div class="settings-group"&gt;
+                        &lt;div class="control-row"&gt;
+                            &lt;input type="checkbox" id="textBg" checked&gt;
+                            &lt;label for="textBg"&gt;Фон под текстом&lt;/label&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="control-row"&gt;
+                            &lt;label&gt;Прозрачность:&lt;/label&gt;
+                            &lt;div class="slider-container"&gt;
+                                &lt;input type="range" min="0" max="100" value="90" id="transparency"&gt;
+                                &lt;input type="number" min="0" max="100" value="90" id="transparencyValue"&gt;
+                                &lt;span&gt;%&lt;/span&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class="control-row"&gt;
+                            &lt;input type="checkbox" id="autoCategory" checked&gt;
+                            &lt;label for="autoCategory"&gt;Режим категорий (Авто)&lt;/label&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- Выравнивание (как в Word) --&gt;
+                    &lt;div class="settings-group"&gt;
+                        &lt;div style="font-size: 13px; margin-bottom: 10px; font-weight: 600;"&gt;Выравнивание:&lt;/div&gt;
+                        &lt;div class="alignment-grid-9"&gt;
+                            &lt;button class="alignment-icon-btn active" data-pos-x="left" data-pos-y="top" title="Верх слева"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="2" y="2" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="center" data-pos-y="top" title="Верх по центру"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="6.5" y="2" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="right" data-pos-y="top" title="Верх справа"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="11" y="2" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="left" data-pos-y="center" title="Центр слева"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="2" y="7.5" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="center" data-pos-y="center" title="Центр"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="6.5" y="7.5" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="right" data-pos-y="center" title="Центр справа"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="11" y="7.5" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="left" data-pos-y="bottom" title="Низ слева"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="2" y="13" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="center" data-pos-y="bottom" title="Низ по центру"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="6.5" y="13" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                            &lt;button class="alignment-icon-btn" data-pos-x="right" data-pos-y="bottom" title="Низ справа"&gt;
+                                &lt;svg width="20" height="20" viewBox="0 0 20 20"&gt;&lt;rect x="11" y="13" width="7" height="5" fill="currentColor"/&gt;&lt;rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/&gt;&lt;/svg&gt;
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- Масштаб --&gt;
+                    &lt;div class="settings-group"&gt;
+                        &lt;div style="font-size: 13px; margin-bottom: 10px; font-weight: 600;"&gt;Масштаб: &lt;span class="scale-label" id="scaleValue"&gt;101%&lt;/span&gt;&lt;/div&gt;
+                        &lt;input type="range" min="10" max="200" value="101" id="scale" style="width: 100%;"&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Правая панель с сеткой баннера --&gt;
+            &lt;div class="right-panel"&gt;
+                &lt;div class="banner-grid" id="popup-grid-container"&gt;
+                    &lt;!-- Blocks will be rendered by JS --&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class="popup-footer"&gt;
+            &lt;button class="btn btn-primary" onclick="saveCurrentBlock()"&gt;Применить&lt;/button&gt;
+            &lt;button class="btn btn-secondary" onclick="closeConstructorPopup()"&gt;Закрыть&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+    let currentSetId = null;
+    let currentSlotIndex = null;
+    let currentBlockData = null; // Data for the currently selected block
+
+    const bannerPopupRoot = document.getElementById('banner-popup-root');
+    const popupSetIdSpan = document.getElementById('popup-set-id');
+    const popupGridContainer = document.getElementById('popup-grid-container');
+    
+    // Preview elements
+    const previewBlockTitle = document.getElementById('preview-block-title');
+    const previewBlockImage = document.getElementById('preview-block-image');
+    const previewBlockMainTitle = document.getElementById('preview-block-main-title');
+    const previewBlockMainText = document.getElementById('preview-block-main-text');
+
+    // Settings panel inputs
+    const textColorInput = document.getElementById('textColor');
+    const headerSizeInput = document.getElementById('headerSize');
+    const announcementSizeInput = document.getElementById('announcementSize');
+    const textBgCheckbox = document.getElementById('textBg');
+    const transparencySlider = document.getElementById('transparency');
+    const transparencyValueInput = document.getElementById('transparencyValue');
+    const autoCategoryCheckbox = document.getElementById('autoCategory');
+    const scaleSlider = document.getElementById('scale');
+    const scaleValueLabel = document.getElementById('scaleValue');
+    const alignmentButtons = document.querySelectorAll('#banner-popup-root .alignment-icon-btn');
+    const formatButtons = document.querySelectorAll('#banner-popup-root .format-btn');
+
+
+    function openConstructor(setId) {
+        currentSetId = setId;
+        popupSetIdSpan.textContent = setId; // Display the current set ID
+
+        renderPopupGrid();
+        selectBlock(setId, 1); // Select the first block by default
+        bannerPopupRoot.style.display = 'flex'; // Show the popup
+    }
+
+    function closeConstructorPopup() {
+        bannerPopupRoot.style.display = 'none'; // Hide the popup
+        currentSetId = null;
+        currentSlotIndex = null;
+        currentBlockData = null;
+    }
+
+    function renderPopupGrid() {
+        popupGridContainer.innerHTML = '';
+        const setBanners = bannersBySet[currentSetId] || [];
+
+        // Create a map of existing blocks by slot_index for easy lookup
+        const blockMap = setBanners.reduce((acc, block) => {
+            acc[block.SLOT_INDEX] = block;
+            return acc;
+        }, {});
+
+        for (let i = 1; i <= 9; i++) { // Assuming 9 slots based on the HTML reference
+            const block = blockMap[i] || {};
+            const blockEl = document.createElement('div');
+            blockEl.className = 'banner-block';
+            blockEl.dataset.slotIndex = i;
+            blockEl.onclick = () => selectBlock(currentSetId, i);
+
+            if (Object.keys(block).length > 0) { // If block data exists
+                if (block.IMAGE) {
+                    blockEl.innerHTML = `
+                        <img src="${block.IMAGE}" alt="${block.TITLE || ''}" class="block-image">
+                        <div class="block-title">${block.TITLE || ''}</div>
+                        <div class="block-text">${block.SUBTITLE || ''}</div>
+                    `;
+                } else {
+                    blockEl.innerHTML = `
+                        <div class="block-title">${block.TITLE || 'Настроить блок'}</div>
+                        <div class="block-text">${block.SUBTITLE || `Слот #${i}`}</div>
+                    `;
+                    blockEl.style.backgroundColor = block.COLOR || '#f0f0f0';
+                }
+            } else { // Empty slot
+                blockEl.innerHTML = `
+                    <div class="block-title">Пустой слот #${i}</div>
+                    <div class="block-text">Нажмите для настройки</div>
+                `;
+            }
+            popupGridContainer.appendChild(blockEl);
+        }
+    }
+
+    function selectBlock(setId, slotIndex) {
+        currentSetId = setId;
+        currentSlotIndex = slotIndex;
+        const setBanners = bannersBySet[currentSetId] || [];
+        currentBlockData = setBanners.find(b => b.SLOT_INDEX == slotIndex) || {};
+
+        // Highlight selected block
+        document.querySelectorAll('#banner-popup-root .banner-block').forEach(el => {
+            el.classList.remove('selected');
+        });
+        const selectedEl = document.querySelector(`#banner-popup-root .banner-block[data-slot-index='${slotIndex}']`);
+        if (selectedEl) {
+            selectedEl.classList.add('selected');
+        }
+        
+        // Populate form fields
+        textColorInput.value = currentBlockData.TEXT_COLOR || '#000000';
+        headerSizeInput.value = parseInt(currentBlockData.TITLE_FONT_SIZE) || 22;
+        announcementSizeInput.value = parseInt(currentBlockData.SUBTITLE_FONT_SIZE) || 14;
+        textBgCheckbox.checked = currentBlockData.TEXT_BG_SHOW === 'Y';
+        transparencySlider.value = currentBlockData.TEXT_BG_OPACITY || 90;
+        transparencyValueInput.value = currentBlockData.TEXT_BG_OPACITY || 90;
+        autoCategoryCheckbox.checked = currentBlockData.CATEGORY_MODE === 'Y';
+        scaleSlider.value = currentBlockData.IMG_SCALE || 100;
+        scaleValueLabel.textContent = (currentBlockData.IMG_SCALE || 100) + '%';
+
+        // Update alignment buttons
+        alignmentButtons.forEach(btn => btn.classList.remove('active'));
+        const currentAlignX = currentBlockData.IMG_POS_X_ALIGN || 'center'; // Assuming default 'center'
+        const currentAlignY = currentBlockData.IMG_POS_Y_ALIGN || 'center'; // Assuming default 'center'
+        const activeAlignBtn = document.querySelector(`#banner-popup-root .alignment-icon-btn[data-pos-x='${currentAlignX}'][data-pos-y='${currentAlignY}']`);
+        if(activeAlignBtn) activeAlignBtn.classList.add('active');
+
+        // Update format buttons (Bold, Italic, Underline)
+        formatButtons.forEach(btn => {
+            const type = btn.dataset.formatType;
+            const style = btn.dataset.formatStyle;
+            let field = '';
+            if (type === 'header' && style === 'bold') field = 'TITLE_BOLD';
+            if (type === 'header' && style === 'italic') field = 'TITLE_ITALIC';
+            if (type === 'header' && style === 'underline') field = 'TITLE_UNDERLINE';
+            if (type === 'announcement' && style === 'bold') field = 'SUBTITLE_BOLD';
+            if (type === 'announcement' && style === 'italic') field = 'SUBTITLE_ITALIC';
+            if (type === 'announcement' && style === 'underline') field = 'SUBTITLE_UNDERLINE';
+            
+            if (currentBlockData[field] === 'Y') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Update selected block preview
+        updateSelectedBlockPreview();
+    }
+
+    function updateSelectedBlockPreview() {
+        previewBlockTitle.textContent = currentBlockData.TITLE || `Блок #${currentSlotIndex}`;
+        previewBlockImage.src = currentBlockData.IMAGE || '';
+        previewBlockMainTitle.innerHTML = getFormattedText(currentBlockData.TITLE || '', 'title');
+        previewBlockMainText.innerHTML = getFormattedText(currentBlockData.SUBTITLE || '', 'subtitle');
+    }
+
+    // Helper to get formatted text for preview
+    function getFormattedText(text, type) {
+        let style = '';
+        if (type === 'title') {
+            if (currentBlockData.TITLE_BOLD === 'Y') style += 'font-weight:bold;';
+            if (currentBlockData.TITLE_ITALIC === 'Y') style += 'font-style:italic;';
+            if (currentBlockData.TITLE_UNDERLINE === 'Y') style += 'text-decoration:underline;';
+            style += `font-size:${currentBlockData.TITLE_FONT_SIZE || 22}px;`;
+        } else if (type === 'subtitle') {
+            if (currentBlockData.SUBTITLE_BOLD === 'Y') style += 'font-weight:bold;';
+            if (currentBlockData.SUBTITLE_ITALIC === 'Y') style += 'font-style:italic;';
+            if (currentBlockData.SUBTITLE_UNDERLINE === 'Y') style += 'text-decoration:underline;';
+            style += `font-size:${currentBlockData.SUBTITLE_FONT_SIZE || 14}px;`;
+        }
+        return `<span style="${style}">${text}</span>`;
+    }
+
+    function saveCurrentBlock() {
+        const formData = new FormData();
+        formData.append('action', 'save_slot');
+        formData.append('set_id', currentSetId);
+        formData.append('slot_index', currentSlotIndex);
+        formData.append('sessid', '<?=bitrix_sessid()?>');
+
+        // Collect data from form fields
+        formData.append('TEXT_COLOR', textColorInput.value);
+        formData.append('TITLE_FONT_SIZE', headerSizeInput.value + 'px');
+        formData.append('SUBTITLE_FONT_SIZE', announcementSizeInput.value + 'px');
+        formData.append('TEXT_BG_SHOW', textBgCheckbox.checked ? 'Y' : 'N');
+        formData.append('TEXT_BG_OPACITY', transparencyValueInput.value);
+        formData.append('CATEGORY_MODE', autoCategoryCheckbox.checked ? 'Y' : 'N');
+        formData.append('IMG_SCALE', scaleSlider.value);
+        
+        // Alignment
+        const activeAlignBtn = document.querySelector('#banner-popup-root .alignment-icon-btn.active');
+        if (activeAlignBtn) {
+            formData.append('IMG_POS_X_ALIGN', activeAlignBtn.dataset.posX);
+            formData.append('IMG_POS_Y_ALIGN', activeAlignBtn.dataset.posY);
+        }
+
+        // Format buttons
+        formatButtons.forEach(btn => {
+            const type = btn.dataset.formatType;
+            const style = btn.dataset.formatStyle;
+            let field = '';
+            if (type === 'header' && style === 'bold') field = 'TITLE_BOLD';
+            if (type === 'header' && style === 'italic') field = 'TITLE_ITALIC';
+            if (type === 'header' && style === 'underline') field = 'TITLE_UNDERLINE';
+            if (type === 'announcement' && style === 'bold') field = 'SUBTITLE_BOLD';
+            if (type === 'announcement' && style === 'italic') field = 'SUBTITLE_ITALIC';
+            if (type === 'announcement' && style === 'underline') field = 'SUBTITLE_UNDERLINE';
+            
+            if (field) {
+                formData.append(field, btn.classList.contains('active') ? 'Y' : 'N');
+            }
+        });
+
+
+        fetch('mycompany_banner_ajax_save_banner.php', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update bannersBySet with new data
+                    if (!bannersBySet[currentSetId]) {
+                        bannersBySet[currentSetId] = [];
+                    }
+                    const existingIndex = bannersBySet[currentSetId].findIndex(b => b.SLOT_INDEX == currentSlotIndex);
+                    if (existingIndex > -1) {
+                        bannersBySet[currentSetId][existingIndex] = data.data;
+                    } else {
+                        bannersBySet[currentSetId].push(data.data);
+                    }
+                    currentBlockData = data.data; // Update current block data with fresh data
+                    renderPopupGrid(); // Re-render the grid in the popup
+                    updateSelectedBlockPreview(); // Update the preview in the left panel
+                    // Optionally, re-render the main grid on the settings page if visible, to reflect changes immediately
+                    // This part would require a function in the main script to update the grid of set cards.
+                    alert('Изменения сохранены!');
+                } else {
+                    alert('Ошибка при сохранении: ' + (data.errors ? data.errors.join('\n') : 'Неизвестная ошибка.'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving block:', error);
+                alert('Произошла ошибка при сохранении блока.');
+            });
+    }
+
+    // Event listeners for settings panel
+    transparencySlider.addEventListener('input', (e) => {
+        transparencyValueInput.value = e.target.value;
+    });
+    transparencyValueInput.addEventListener('input', (e) => {
+        transparencySlider.value = e.target.value;
+    });
+
+    scaleSlider.addEventListener('input', (e) => {
+        scaleValueLabel.textContent = e.target.value + '%';
+        // TODO: Update image preview with new scale
+    });
+
+    alignmentButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            alignmentButtons.forEach(btn => btn.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            // TODO: Update image preview with new alignment
+        });
+    });
+
+    formatButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('active');
+            // TODO: Update text preview with new formatting
+        });
+    });
+
+    // Dummy applyToAll functions for now - these would need to interact with the backend
+    function applyToAll(type) {
+        if (type === 'color') {
+            const color = textColorInput.value;
+            console.log('Применить цвет ко всем:', color);
+            // This would involve another AJAX call to save global setting for all blocks
+        } else if (type === 'font') {
+            const headerSize = headerSizeInput.value;
+            const announcementSize = announcementSizeInput.value;
+            console.log('Применить размеры шрифтов:', headerSize, announcementSize);
+            // This would involve another AJAX call to save global setting for all blocks
+        }
+        alert('Функционал "Применить ко всем" пока не реализован.');
+    }
+&lt;/script&gt;
+&lt;?php require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php"); ?&gt;

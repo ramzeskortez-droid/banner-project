@@ -700,8 +700,9 @@ const adjuster = {
     isDragging: false, 
     startX: 0, 
     startY: 0, 
-    initPosX: 50, 
-
+    initPosX: 50,
+    initPosY: 50 
+}; 
 
 function setPos(axis, val) {
     if (axis === 'x') {

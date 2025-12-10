@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор баннера</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .popup-overlay {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .popup-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .popup-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 450px;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .selected-block-preview {
+            background: #f5f5f5;
+            padding: 15px;
+            border-bottom: 2px solid #ddd;
+            min-height: 220px;
+        }
+
+        .preview-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .block-preview-container {
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            padding: 10px;
+            height: 170px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .block-preview-content {
+            text-align: center;
+            max-width: 90%;
+        }
+
+        .block-preview-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .block-preview-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .block-preview-text {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .settings-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #e8e8e8;
+            overflow: auto;
+        }
+
+        .banner-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .banner-block {
+            background: white;
+            border: 3px solid transparent;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .banner-block:hover {
+            border-color: #95a5a6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .banner-block.selected {
+            border-color: #3498db;
+            box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3);
+        }
+
+        .block-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .block-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .block-text {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .settings-group {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-row label {
+            font-size: 13px;
+            color: #555;
+            min-width: 120px;
+        }
+
+        .control-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .slider-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: none;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .quick-edit-section {
+            background: #fff9e6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #ffd966;
+        }
+
+        .quick-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .quick-edit-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .format-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .format-btn {
+            padding: 4px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .format-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .format-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .text-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .text-control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 28px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .apply-btn {
+            padding: 6px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .apply-btn:hover {
+            background: #2980b9;
+        }
+
+        .alignment-grid-9 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            max-width: 180px;
+        }
+
+        .alignment-icon-btn {
+            width: 56px;
+            height: 56px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .alignment-icon-btn:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+
+        .alignment-icon-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .popup-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #7cb342;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #689f38;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .scale-label {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-overlay">
+        <div class="popup-header">
+            Конструктор баннера: 1313
+        </div>
+
+        <div class="popup-content">
+            <!-- Левая панель -->
+            <div class="left-panel">
+                <!-- Превью выбранного блока -->
+                <div class="selected-block-preview">
+                    <div class="preview-title">Выбранный блок: Обувь</div>
+                    <div class="block-preview-container">
+                        <div class="block-preview-content">
+                            <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=200&fit=crop" alt="Обувь" class="block-preview-image">
+                            <div class="block-preview-title">Обувь</div>
+                            <div class="block-preview-text">Сложно представить себе элементы гардероба современного человека...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Настройки -->
+                <div class="settings-panel">
+                    <div class="section-title">Настройка отображения (Тяните мышкой для сдвига)</div>
+
+                    <!-- Быстрое редактирование -->
+                    <div class="quick-edit-section">
+                        <div class="quick-edit-header">
+                            <span class="quick-edit-title">БЫСТРОЕ РЕДАКТИРОВАНИЕ (КО ВСЕМ)</span>
+                        </div>
+                        
+                        <div class="text-controls">
+                            <div class="text-control-group">
+                                <label>Цвет текста:</label>
+                                <input type="color" class="color-picker" value="#000000" id="textColor">
+                                <button class="apply-btn" onclick="applyToAll('color')">Применить ко всем</button>
+                            </div>
+                        </div>
+
+                        <div class="text-controls">
+                            <div class="text-control-group" style="width: 100%;">
+                                <label>Размер шрифта:</label>
+                                <label style="min-width: auto;">Заголовок:</label>
+                                <input type="number" value="22" min="8" max="72" id="headerSize">
+                                <label style="min-width: auto;">Анонс:</label>
+                                <input type="number" value="14" min="8" max="72" id="announcementSize">
+                                <button class="apply-btn" onclick="applyToAll('font')">Применить</button>
+                            </div>
+                        </div>
+
+                        <div class="text-controls">
+                            <div class="text-control-group" style="width: 100%; justify-content: flex-start;">
+                                <label></label>
+                                <label style="min-width: auto;">Заголовок:</label>
+                                <button class="format-btn" onclick="toggleFormat('header', 'bold')"><b>B</b></button>
+                                <button class="format-btn" onclick="toggleFormat('header', 'italic')"><i>I</i></button>
+                                <button class="format-btn" onclick="toggleFormat('header', 'underline')"><u>U</u></button>
+                                <label style="min-width: auto; margin-left: 10px;">Анонс:</label>
+                                <button class="format-btn" onclick="toggleFormat('announcement', 'bold')"><b>B</b></button>
+                                <button class="format-btn" onclick="toggleFormat('announcement', 'italic')"><i>I</i></button>
+                                <button class="format-btn" onclick="toggleFormat('announcement', 'underline')"><u>U</u></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Основные настройки блока -->
+                    <div class="settings-group">
+                        <div class="control-row">
+                            <input type="checkbox" id="textBg" checked>
+                            <label for="textBg">Фон под текстом</label>
+                        </div>
+
+                        <div class="control-row">
+                            <label>Прозрачность:</label>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="100" value="90" id="transparency">
+                                <input type="number" min="0" max="100" value="90" id="transparencyValue">
+                                <span>%</span>
+                            </div>
+                        </div>
+
+                        <div class="control-row">
+                            <input type="checkbox" id="autoCategory" checked>
+                            <label for="autoCategory">Режим категорий (Авто)</label>
+                        </div>
+                    </div>
+
+                    <!-- Выравнивание (как в Word) -->
+                    <div class="settings-group">
+                        <div style="font-size: 13px; margin-bottom: 10px; font-weight: 600;">Выравнивание:</div>
+                        <div class="alignment-grid-9">
+                            <button class="alignment-icon-btn active" onclick="setAlignmentPosition(0, event)" title="Верх слева">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(1, event)" title="Верх по центру">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="6.5" y="2" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(2, event)" title="Верх справа">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="11" y="2" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(3, event)" title="Центр слева">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="7.5" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(4, event)" title="Центр">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="6.5" y="7.5" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(5, event)" title="Центр справа">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="11" y="7.5" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(6, event)" title="Низ слева">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="13" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(7, event)" title="Низ по центру">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="6.5" y="13" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                            <button class="alignment-icon-btn" onclick="setAlignmentPosition(8, event)" title="Низ справа">
+                                <svg width="20" height="20" viewBox="0 0 20 20"><rect x="11" y="13" width="7" height="5" fill="currentColor"/><rect x="2" y="2" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Масштаб -->
+                    <div class="settings-group">
+                        <div style="font-size: 13px; margin-bottom: 10px; font-weight: 600;">Масштаб: <span class="scale-label" id="scaleValue">101%</span></div>
+                        <input type="range" min="10" max="200" value="101" id="scale" style="width: 100%;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Правая панель с сеткой баннера -->
+            <div class="right-panel">
+                <div class="banner-grid">
+                    <!-- Блок 1 - Обувь (выбран) -->
+                    <div class="banner-block selected" onclick="selectBlock(0)">
+                        <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=200&fit=crop" alt="Обувь" class="block-image">
+                        <div class="block-title">Обувь</div>
+                        <div class="block-text">Сложно представить себе элементы гардероба современного человека...</div>
+                    </div>
+
+                    <!-- Блок 2 -->
+                    <div class="banner-block" onclick="selectBlock(1)">
+                        <img src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=300&h=200&fit=crop" alt="Обувь" class="block-image">
+                        <div class="block-title">Обувь</div>
+                        <div class="block-text">Желание человека выглядеть стильно не новость даже не современном рынке...</div>
+                    </div>
+
+                    <!-- Блок 3 -->
+                    <div class="banner-block" onclick="selectBlock(2)">
+                        <img src="https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=300&h=200&fit=crop" alt="Кроссовки" class="block-image">
+                        <div class="block-title">Кроссовки</div>
+                        <div class="block-text">Для современного спортивного стиля</div>
+                    </div>
+
+                    <!-- Блок 4 -->
+                    <div class="banner-block" onclick="selectBlock(3)">
+                        <img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=300&h=200&fit=crop" alt="Тапочки" class="block-image">
+                        <div class="block-title">Тапочки</div>
+                        <div class="block-text">Яркая удобная домашняя обувь для домашнего уюта</div>
+                    </div>
+
+                    <!-- Блок 5 -->
+                    <div class="banner-block" onclick="selectBlock(4)">
+                        <img src="https://images.unsplash.com/photo-1449505278894-297fdb3edbc1?w=300&h=200&fit=crop" alt="Туфли мужские" class="block-image">
+                        <div class="block-title">Туфли Мужские</div>
+                        <div class="block-text">Мужская обувь предстающая совершенными брендами</div>
+                    </div>
+
+                    <!-- Блок 6 -->
+                    <div class="banner-block" onclick="selectBlock(5)">
+                        <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=200&fit=crop" alt="Туфли женские" class="block-image">
+                        <div class="block-title">Туфли Женские</div>
+                        <div class="block-text">Считается что женские туфли — это своеобразная визитная карточка</div>
+                    </div>
+
+                    <!-- Блок 7 -->
+                    <div class="banner-block" onclick="selectBlock(6)">
+                        <img src="https://images.unsplash.com/photo-1556906781-9a412961c28c?w=300&h=200&fit=crop" alt="Аксессуары" class="block-image">
+                        <div class="block-title">Аксессуары</div>
+                        <div class="block-text">Без аксессуаров гардероб не может быть полным</div>
+                    </div>
+
+                    <!-- Блок 8 -->
+                    <div class="banner-block" onclick="selectBlock(7)">
+                        <img src="https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=300&h=200&fit=crop" alt="Ремни" class="block-image">
+                        <div class="block-title">Ремни</div>
+                        <div class="block-text">Желаете сделать образ стильным и завершенным?</div>
+                    </div>
+
+                    <!-- Блок 9 -->
+                    <div class="banner-block" onclick="selectBlock(8)">
+                        <img src="https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=300&h=200&fit=crop" alt="Ремни женские" class="block-image">
+                        <div class="block-title">Ремни Женские</div>
+                        <div class="block-text">Женский ремень — это принципиальный элемент гардероба</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="popup-footer">
+            <button class="btn btn-primary">Применить</button>
+            <button class="btn btn-secondary">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const blocks = [
+            { title: 'Обувь', text: 'Сложно представить себе элементы гардероба современного человека...', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=200&fit=crop' },
+            { title: 'Обувь', text: 'Желание человека выглядеть стильно не новость даже не современном рынке...', img: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=300&h=200&fit=crop' },
+            { title: 'Кроссовки', text: 'Для современного спортивного стиля', img: 'https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=300&h=200&fit=crop' },
+            { title: 'Тапочки', text: 'Яркая удобная домашняя обувь для домашнего уюта', img: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=300&h=200&fit=crop' },
+            { title: 'Туфли Мужские', text: 'Мужская обувь предстающая совершенными брендами', img: 'https://images.unsplash.com/photo-1449505278894-297fdb3edbc1?w=300&h=200&fit=crop' },
+            { title: 'Туфли Женские', text: 'Считается что женские туфли — это своеобразная визитная карточка', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=200&fit=crop' },
+            { title: 'Аксессуары', text: 'Без аксессуаров гардероб не может быть полным', img: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=300&h=200&fit=crop' },
+            { title: 'Ремни', text: 'Желаете сделать образ стильным и завершенным?', img: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=300&h=200&fit=crop' },
+            { title: 'Ремни Женские', text: 'Женский ремень — это принципиальный элемент гардероба', img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=300&h=200&fit=crop' }
+        ];
+
+        let selectedBlockIndex = 0;
+
+        function selectBlock(index) {
+            // Убираем выделение со всех блоков
+            document.querySelectorAll('.banner-block').forEach(block => {
+                block.classList.remove('selected');
+            });
+            
+            // Выделяем выбранный блок
+            document.querySelectorAll('.banner-block')[index].classList.add('selected');
+            
+            // Обновляем превью выбранного блока
+            selectedBlockIndex = index;
+            updateSelectedBlockPreview();
+        }
+
+        function updateSelectedBlockPreview() {
+            const block = blocks[selectedBlockIndex];
+            document.querySelector('.preview-title').textContent = `Выбранный блок: ${block.title}`;
+            document.querySelector('.block-preview-image').src = block.img;
+            document.querySelector('.block-preview-title').textContent = block.title;
+            document.querySelector('.block-preview-text').textContent = block.text;
+        }
+
+        // Синхронизация слайдера прозрачности и числового поля
+        const transparencySlider = document.getElementById('transparency');
+        const transparencyValue = document.getElementById('transparencyValue');
+        
+        transparencySlider.addEventListener('input', (e) => {
+            transparencyValue.value = e.target.value;
+        });
+        
+        transparencyValue.addEventListener('input', (e) => {
+            transparencySlider.value = e.target.value;
+        });
+
+        // Обновление значения масштаба
+        const scaleSlider = document.getElementById('scale');
+        const scaleValueLabel = document.getElementById('scaleValue');
+        
+        scaleSlider.addEventListener('input', (e) => {
+            scaleValueLabel.textContent = e.target.value + '%';
+        });
+
+        // Функция переключения выравнивания (9 позиций)
+        function setAlignmentPosition(position, event) {
+            const buttons = event.target.closest('.alignment-grid-9').querySelectorAll('.alignment-icon-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.alignment-icon-btn').classList.add('active');
+            
+            const positions = [
+                { h: 'left', v: 'top' },
+                { h: 'center', v: 'top' },
+                { h: 'right', v: 'top' },
+                { h: 'left', v: 'center' },
+                { h: 'center', v: 'center' },
+                { h: 'right', v: 'center' },
+                { h: 'left', v: 'bottom' },
+                { h: 'center', v: 'bottom' },
+                { h: 'right', v: 'bottom' }
+            ];
+            
+            console.log(`Выравнивание: ${positions[position].h} / ${positions[position].v}`);
+        }
+
+        // Функция применения настроек ко всем блокам
+        function applyToAll(type) {
+            if (type === 'color') {
+                const color = document.getElementById('textColor').value;
+                console.log('Применить цвет ко всем:', color);
+            } else if (type === 'font') {
+                const headerSize = document.getElementById('headerSize').value;
+                const announcementSize = document.getElementById('announcementSize').value;
+                console.log('Применить размеры шрифтов:', headerSize, announcementSize);
+            }
+        }
+
+        // Функция переключения форматирования
+        function toggleFormat(section, format) {
+            event.target.classList.toggle('active');
+            console.log(`Форматирование ${section}: ${format}`);
+        }
+    </script>
+</body>
+</html>
