@@ -6,6 +6,7 @@ use Bitrix\Main\EventManager;
 Loader::registerAutoLoadClasses("mycompany.banner", array(
     "\MyCompany\Banner\Event" => "lib/Event.php",
     "\MyCompany\Banner\BannerTable" => "lib/BannerTable.php",
+    "\MyCompany\Banner\BannerSetTable" => "lib/BannerSetTable.php",
 ));
 
 // 2. Обработчик для создания меню
