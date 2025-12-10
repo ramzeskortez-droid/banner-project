@@ -47,7 +47,7 @@ if (!empty($setIds)) {
             'TEXT_ALIGN', 'TEXT_COLOR', 'TITLE', 'SUBTITLE', 'TITLE_FONT_SIZE', 'SUBTITLE_FONT_SIZE',
             'TITLE_BOLD', 'TITLE_ITALIC', 'TITLE_UNDERLINE',
             'SUBTITLE_BOLD', 'SUBTITLE_ITALIC', 'SUBTITLE_UNDERLINE',
-            'TEXT_BG_SHOW', 'TEXT_BG_COLOR', 'TEXT_BG_OPACITY', 'CATEGORY_MODE', 'LINK'
+            'LINK'
         ]
     ]);
     while ($banner = $bannersRes->fetch()) {
@@ -1033,7 +1033,15 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         viewList.style.display = 'none';
         viewEditor.style.display = 'flex'; // Assuming flex for centered popup
 
-        popupSetIdSpan.textContent = `ID: ${setId} - ${currentSets[setId].NAME || ''}`;
+        const set = currentSets[setId];
+        popupSetIdSpan.textContent = `ID: ${setId} - ${set.NAME || ''}`;
+
+        // Populate global settings from the set object
+        textBgCheckbox.checked = set.TEXT_BG_SHOW === 'Y';
+        transparencySlider.value = set.TEXT_BG_OPACITY || 90;
+        transparencyValueInput.value = set.TEXT_BG_OPACITY || 90;
+        autoCategoryCheckbox.checked = set.CATEGORY_MODE === 'Y';
+        // (Добавить остальные глобальные поля если есть)
         
         renderEditorGrid();
         selectBlock(currentEditedSetId, 1); // Select the first block by default
@@ -1104,14 +1112,10 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             selectedEl.classList.add('selected');
         }
         
-        // Populate form fields
+        // Populate form fields (block-specific settings)
         textColorInput.value = currentSelectedBlockData.TEXT_COLOR || '#000000';
         headerSizeInput.value = parseInt(currentSelectedBlockData.TITLE_FONT_SIZE) || 22;
         announcementSizeInput.value = parseInt(currentSelectedBlockData.SUBTITLE_FONT_SIZE) || 14;
-        textBgCheckbox.checked = currentSelectedBlockData.TEXT_BG_SHOW === 'Y';
-        transparencySlider.value = currentSelectedBlockData.TEXT_BG_OPACITY || 90;
-        transparencyValueInput.value = currentSelectedBlockData.TEXT_BG_OPACITY || 90;
-        autoCategoryCheckbox.checked = currentSelectedBlockData.CATEGORY_MODE === 'Y';
         scaleSlider.value = currentSelectedBlockData.IMG_SCALE || 100;
         scaleValueLabel.textContent = (currentSelectedBlockData.IMG_SCALE || 100) + '%';
 
