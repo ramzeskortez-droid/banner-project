@@ -10,44 +10,9 @@ use MyCompany\Banner\BannerSetTable;
 
 header('Content-Type: application/json');
 
-// --- NEW LOGGING LOGIC ---
-// ЛОГИРОВАНИЕ (В самом начале)
-if (!function_exists('writeDebugLog')) {
-    function writeDebugLog($data) {
-        $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
-        $logEntry = date('Y-m-d H:i:s') . " | " . print_r($data, true) . "\n----------------\n";
-        file_put_contents($file, $logEntry, FILE_APPEND);
-    }
-}
-
-// Get request object and action early
-$req = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
-$action = $req->get('action') ?: $req->getPost('action');
-
-// ОБРАБОТЧИК ЛОГОВ (Должен быть тут, чтобы не вернуть JSON ошибки внизу)
-if ($action === 'get_log') {
-    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
-    if (file_exists($file)) {
-        echo file_get_contents($file);
-    } else {
-        echo "Лог файл пуст или не создан.";
-    }
-    die(); // Важно! Прерываем скрипт
-}
-if ($action === 'clear_log') {
-    $file = $_SERVER['DOCUMENT_ROOT'] . '/upload/mycompany_banner_debug.log';
-    file_put_contents($file, '');
-    echo "Cleared";
-    die();
-}
-
-// Пишем лог только если это не чтение лога
-writeDebugLog($_REQUEST);
-// --- END NEW LOGGING LOGIC ---
-
+$req = Application::getInstance()->getContext()->getRequest();
 $resp = ['success' => false, 'errors' => []];
 
-// Security check
 if (!check_bitrix_sessid()) {
     $resp['errors'][] = 'Session has expired.';
     echo json_encode($resp);
@@ -56,159 +21,160 @@ if (!check_bitrix_sessid()) {
 
 try {
     Loader::includeModule('mycompany.banner');
-    // $req and $action are already defined above
+    if (Loader::includeModule('iblock')) {
+        // Only now we can proceed with iblock-related actions
+    }
+    
+    $action = $req->get('action');
     $setId = (int)$req->getPost('set_id');
 
-    // Action: Create a new Banner (Set)
-    if ($action === 'create_set') {
-        $name = trim($req->getPost('name'));
-        if (empty($name)) {
-            throw new \Exception('Banner name cannot be empty.');
-        }
-        $catMode = $req->getPost('category_mode') === 'Y' ? 'Y' : 'N';
-
-        // Add new Banner (Set) to DB
-        $res = BannerSetTable::add([
-            'NAME' => $name,
-            'CATEGORY_MODE' => $catMode,
-            // Default styles
-            'TEXT_BG_SHOW' => 'N', 'TEXT_BG_COLOR' => '#ffffff', 'TEXT_BG_OPACITY' => 90,
-            'USE_GLOBAL_TEXT_COLOR' => 'N', 'GLOBAL_TEXT_COLOR' => '#000000'
-        ]);
-        
-        if ($res->isSuccess()) {
-            $newSetId = $res->getId();
-            $resp['success'] = true;
-            $resp['id'] = $newSetId;
+    switch ($action) {
+        case 'create_set':
+            $name = trim($req->getPost('name'));
+            if (empty($name)) throw new \Exception('Название баннера не может быть пустым.');
             
-            // If "category mode" is enabled, pre-fill the new Banner with Blocks from IBlock sections
-            if ($catMode === 'Y' && Loader::includeModule('iblock')) {
-                $sections = [];
-                $rs = \CIBlockSection::GetList(
-                    ['RAND'=>'ASC'],
-                    ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', 'IBLOCK_ACTIVE'=>'Y', 'CNT_ACTIVE' => 'Y'],
-                    false,
-                    ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL'],
-                    ['nTopCount'=>8] // Get 8 random active sections
-                );
-                while($r = $rs->GetNext()) {
-                    $sections[] = $r;
-                }
-                
-                // Create 8 Blocks (slots)
-                for($i = 1; $i <= 8; $i++) {
-                    $section = $sections[$i-1] ?? null;
-                    BannerTable::add([
-                        'SET_ID' => $newSetId,
-                        'SLOT_INDEX' => $i,
-                        'TITLE' => $section ? $section['NAME'] : "Блок $i",
-                        'SUBTITLE' => $section ? TruncateText(strip_tags($section['DESCRIPTION']), 150) : "",
-                        'LINK' => $section ? $section['SECTION_PAGE_URL'] : '#',
-                        'IMAGE' => ($section && $section['PICTURE']) ? \CFile::GetPath($section['PICTURE']) : '',
-                        'SORT' => $i * 10,
-                        'TITLE_BOLD' => 'Y',
-                        'TEXT_ALIGN' => 'center'
-                    ]);
-                }
+            $res = BannerSetTable::add(['NAME' => $name]);
+            if (!$res->isSuccess()) {
+                $resp['errors'] = $res->getErrorMessages();
+                break;
             }
-        } else {
-            $resp['errors'] = $res->getErrorMessages();
-        }
-    }
-    // Action: Delete a Banner (Set) and all its Blocks
-    elseif ($action === 'delete_set') {
-        if ($setId > 0) {
-            // 1. Delete all associated Blocks (BannerTable records)
-            $banners = BannerTable::getList(['filter' => ['SET_ID' => $setId], 'select' => ['ID']])->fetchAll();
-            foreach ($banners as $banner) {
-                BannerTable::delete($banner['ID']);
-            }
+            $newSetId = $res->getId();
 
-            // 2. Delete the Banner (Set) itself
-            $res = BannerSetTable::delete($setId);
+            if ($req->getPost('auto_fill') === 'Y' && Loader::includeModule('catalog')) {
+                $catalogIblockId = 0;
+                $catalogs = \CCatalog::GetList([], ['IBLOCK_ACTIVE' => 'Y'], false, ['nTopCount' => 1], ['IBLOCK_ID']);
+                if ($catalog = $catalogs->Fetch()) {
+                    $catalogIblockId = $catalog['IBLOCK_ID'];
+                }
+
+                if ($catalogIblockId > 0) {
+                    $sectionsWithPicAndDesc = [];
+                    $otherSections = [];
+                    $rs = \CIBlockSection::GetList(['NAME'=>'ASC'], ['ACTIVE'=>'Y', 'GLOBAL_ACTIVE'=>'Y', 'IBLOCK_ID' => $catalogIblockId], false, ['ID','NAME','DESCRIPTION','PICTURE','SECTION_PAGE_URL']);
+                    while($r = $rs->GetNext()) {
+                        if (!empty($r['DESCRIPTION']) && !empty($r['PICTURE'])) {
+                            $sectionsWithPicAndDesc[] = $r;
+                        } else {
+                            $otherSections[] = $r;
+                        }
+                    }
+                    $finalSections = array_slice(array_merge($sectionsWithPicAndDesc, $otherSections), 0, 8);
+                    
+                    for($i = 1; $i <= 8; $i++) {
+                        $section = $finalSections[$i-1] ?? null;
+                        BannerTable::add([
+                            'SET_ID' => $newSetId, 'SLOT_INDEX' => $i, 'SORT' => $i * 10,
+                            'TITLE' => $section ? $section['NAME'] : "Блок $i",
+                            'SUBTITLE' => $section ? TruncateText(strip_tags($section['DESCRIPTION']), 150) : "",
+                            'LINK' => $section ? $section['SECTION_PAGE_URL'] : '#',
+                            'IMAGE' => $section['PICTURE'] ?? null,
+                        ]);
+                    }
+                }
+            }
+            $newSetData = BannerSetTable::getById($newSetId)->fetch();
+            $newBannersDataRaw = BannerTable::getList(['filter' => ['SET_ID' => $newSetId]])->fetchAll();
+            $newBannersData = array_map(function($b){ if($b['IMAGE']) $b['IMAGE'] = CFile::GetPath($b['IMAGE']); return $b; }, $newBannersDataRaw);
+            $resp['success'] = true;
+            $resp['data'] = ['set' => $newSetData, 'banners' => $newBannersData];
+            break;
+
+        case 'delete_set':
+            if ($setId > 0) {
+                $banners = BannerTable::getList(['filter' => ['SET_ID' => $setId], 'select' => ['ID']])->fetchAll();
+                foreach ($banners as $banner) { BannerTable::delete($banner['ID']); }
+                $res = BannerSetTable::delete($setId);
+                if ($res->isSuccess()) $resp['success'] = true; else $resp['errors'] = $res->getErrorMessages();
+            } else {
+                $resp['errors'][] = 'Invalid Banner ID.';
+            }
+            break;
+
+        case 'save_slot':
+            $fields = $req->getPostList()->toArray();
+            $slotIndex = (int)$fields['SLOT_INDEX'];
+            if (!$setId || !$slotIndex) throw new \Exception('Missing Set or Slot ID.');
+            
+            $allowed = ['TITLE','SUBTITLE','LINK','IMAGE','COLOR','CATEGORY_ID','TEXT_COLOR','TEXT_ALIGN','TITLE_FONT_SIZE','SUBTITLE_FONT_SIZE','TITLE_BOLD','TITLE_ITALIC','TITLE_UNDERLINE','SUBTITLE_BOLD','SUBTITLE_ITALIC','SUBTITLE_UNDERLINE','IMG_SCALE','IMG_POS_X','IMG_POS_Y','SORT','TEXT_BG_SHOW','TEXT_BG_COLOR','TEXT_BG_OPACITY','TEXT_STROKE_WIDTH','TEXT_STROKE_COLOR','HOVER_ANIMATION'];
+            $data = array_intersect_key($fields, array_flip($allowed));
+
+            $existing = BannerTable::getList(['filter'=>['SET_ID'=>$setId, 'SLOT_INDEX'=>$slotIndex]])->fetch();
+            $res = $existing ? BannerTable::update($existing['ID'], $data) : BannerTable::add($data + ['SET_ID' => $setId, 'SLOT_INDEX' => $slotIndex]);
+
             if ($res->isSuccess()) {
                 $resp['success'] = true;
+                $id = $existing ? $existing['ID'] : $res->getId();
+                $savedData = BannerTable::getById($id)->fetch();
+                if($savedData['IMAGE']) $savedData['IMAGE'] = CFile::GetPath($savedData['IMAGE']);
+                $resp['data'] = $savedData;
             } else {
                 $resp['errors'] = $res->getErrorMessages();
             }
-        } else {
-            $resp['errors'][] = 'Invalid Banner ID provided.';
-        }
-    }
-    // Action: Save a single Block's (slot) data
-    elseif ($action === 'save_slot') {
-        $data = [
-            'SET_ID'             => $setId,
-            'SLOT_INDEX'         => (int)$req->getPost('slot_index'),
-            'TITLE'              => trim($req->getPost('title')),
-            'SUBTITLE'           => trim($req->getPost('subtitle')),
-            'LINK'               => trim($req->getPost('link')),
-            'COLOR'              => trim($req->getPost('color')),
-            'CATEGORY_ID'        => (int)$req->getPost('category_id'),
-            'TEXT_ALIGN'         => $req->getPost('text_align') ?: 'center',
-            'TEXT_COLOR'         => $req->getPost('text_color') ?: '#000000',
-            'TITLE_FONT_SIZE'    => ((int)$req->getPost('title_font_size') ?: 20) . 'px',
-            'SUBTITLE_FONT_SIZE' => ((int)$req->getPost('subtitle_font_size') ?: 14) . 'px',
-            'SORT'               => (int)$req->getPost('sort') ?: 500,
-            'IMG_SCALE'          => (int)$req->getPost('img_scale') ?: 100,
-            'IMG_POS_X'          => is_numeric($req->getPost('img_pos_x')) ? (int)$req->getPost('img_pos_x') : 50,
-            'IMG_POS_Y'          => is_numeric($req->getPost('img_pos_y')) ? (int)$req->getPost('img_pos_y') : 50,
-            'TITLE_BOLD'         => $req->getPost('title_bold') === 'Y' ? 'Y' : 'N',
-            'TITLE_ITALIC'       => $req->getPost('title_italic') === 'Y' ? 'Y' : 'N',
-            'TITLE_UNDERLINE'    => $req->getPost('title_underline') === 'Y' ? 'Y' : 'N',
-            'SUBTITLE_BOLD'      => $req->getPost('subtitle_bold') === 'Y' ? 'Y' : 'N',
-            'SUBTITLE_ITALIC'    => $req->getPost('subtitle_italic') === 'Y' ? 'Y' : 'N',
-            'SUBTITLE_UNDERLINE' => $req->getPost('subtitle_underline') === 'Y' ? 'Y' : 'N',
-        ];
+            break;
+
+        case 'swap_blocks':
+            $slot1 = (int)$req->getPost('slot_index_1');
+            $slot2 = (int)$req->getPost('slot_index_2');
+            if ($setId > 0 && $slot1 > 0 && $slot2 > 0 && $slot1 != $slot2) {
+                $block1 = BannerTable::getList(['filter' => ['SET_ID' => $setId, 'SLOT_INDEX' => $slot1]])->fetch();
+                $block2 = BannerTable::getList(['filter' => ['SET_ID' => $setId, 'SLOT_INDEX' => $slot2]])->fetch();
+                if ($block1 && $block2) {
+                    BannerTable::update($block1['ID'], ['SORT' => $block2['SORT'], 'SLOT_INDEX' => $block2['SLOT_INDEX']]);
+                    BannerTable::update($block2['ID'], ['SORT' => $block1['SORT'], 'SLOT_INDEX' => $block1['SLOT_INDEX']]);
+                    $resp['success'] = true;
+                } else $resp['errors'][] = 'One or both blocks not found.';
+            } else $resp['errors'][] = 'Invalid parameters for swapping.';
+            break;
+
+        case 'save_global_styles':
+            $styles = $req->getPost('styles');
+            if ($setId > 0 && !empty($styles) && is_array($styles)) {
+                $allowed = ['TEXT_COLOR','TITLE_FONT_SIZE','SUBTITLE_FONT_SIZE','TITLE_BOLD','TITLE_ITALIC','TITLE_UNDERLINE','SUBTITLE_BOLD','SUBTITLE_ITALIC','SUBTITLE_UNDERLINE'];
+                $data = array_intersect_key($styles, array_flip($allowed));
+                if(!empty($data)) {
+                    $banners = BannerTable::getList(['filter' => ['SET_ID' => $setId], 'select' => ['ID']])->fetchAll();
+                    foreach($banners as $banner) { BannerTable::update($banner['ID'], $data); }
+                    $resp['success'] = true;
+                } else $resp['errors'][] = 'No valid styles to update.';
+            } else $resp['errors'][] = 'Invalid parameters for saving global styles.';
+            break;
+
+        case 'get_iblocks':
+            $iblocks = [];
+            $res = \CIBlock::GetList(['SORT'=>'ASC'], ['ACTIVE' => 'Y', 'TYPE' => 'catalog']);
+            while($row = $res->Fetch()) $iblocks[] = $row;
+            $resp['success'] = true;
+            $resp['data'] = $iblocks;
+            break;
+
+        case 'get_sections_tree':
+            $iblockId = (int)$req->get('iblock_id');
+            if ($iblockId > 0) {
+                $sections = [];
+                $res = \CIBlockSection::GetList(['left_margin'=>'asc'], ['IBLOCK_ID'=>$iblockId, 'ACTIVE'=>'Y'], false, ['ID', 'NAME', 'DEPTH_LEVEL']);
+                while($row = $res->Fetch()) $sections[] = $row;
+                $resp['success'] = true;
+                $resp['data'] = $sections;
+            } else $resp['errors'][] = 'IBlock ID not provided.';
+            break;
         
-        $existing = BannerTable::getList(['filter'=>['SET_ID'=>$data['SET_ID'], 'SLOT_INDEX'=>$data['SLOT_INDEX']]])->fetch();
+        case 'get_section_data':
+            $sectionId = (int)$req->get('section_id');
+            if($sectionId > 0) {
+                $section = \CIBlockSection::GetByID($sectionId)->GetNext();
+                if($section) {
+                    if($section['PICTURE']) $section['PICTURE'] = CFile::GetPath($section['PICTURE']);
+                    if($section['DESCRIPTION']) $section['DESCRIPTION'] = strip_tags($section['DESCRIPTION']);
+                    $resp['success'] = true;
+                    $resp['data'] = $section;
+                } else $resp['errors'][] = 'Section not found.';
+            } else $resp['errors'][] = 'Section ID not provided.';
+            break;
 
-        // Handle image upload (file or URL)
-        $imagePath = '';
-        if (!empty($_FILES['image_file']['tmp_name'])) {
-            $fid = \CFile::SaveFile($_FILES['image_file'], 'mycompany.banner');
-            if ($fid) $imagePath = \CFile::GetPath($fid);
-        } elseif (!empty($req->getPost('image_url'))) {
-            $imagePath = trim($req->getPost('image_url'));
-        }
-
-        if ($imagePath) {
-            $data['IMAGE'] = $imagePath;
-        }
-
-        // Update or Add the Block record
-        if($existing) {
-            $res = BannerTable::update($existing['ID'], $data);
-        } else {
-            $res = BannerTable::add($data);
-        }
-
-        if($res->isSuccess()) {
-            $resp['success'] = true;
-            $id = $existing ? $existing['ID'] : $res->getId();
-            $resp['data'] = BannerTable::getById($id)->fetch(); // Return updated data
-        } else {
-            $resp['errors'] = $res->getErrorMessages();
-        }
+        default:
+            $resp['errors'][] = 'Unknown action.';
+            break;
     }
-     // Other mass-update and settings actions...
-    elseif ($action === 'save_set_settings') {
-        $data = [
-            'TEXT_BG_SHOW' => $req->getPost('show') === 'Y' ? 'Y' : 'N',
-            'TEXT_BG_COLOR' => trim($req->getPost('color')),
-            'TEXT_BG_OPACITY' => (int)$req->getPost('opacity'),
-            'CATEGORY_MODE' => $req->getPost('category_mode') === 'Y' ? 'Y' : 'N',
-        ];
-        $res = BannerSetTable::update($setId, $data);
-
-        if ($res->isSuccess()) {
-            $resp['success'] = true;
-            $resp['data'] = BannerSetTable::getById($setId)->fetch();
-        } else {
-            $resp['errors'] = $res->getErrorMessages();
-        }
-    }
-    // ... other actions remain unchanged
 } catch (\Exception $e) {
     $resp['errors'][] = $e->getMessage();
 }

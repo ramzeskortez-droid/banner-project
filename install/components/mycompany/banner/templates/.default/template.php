@@ -16,7 +16,7 @@ if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
 <?php foreach($arResult['BANNERS'] as $i => $banner):
     if(!$banner) continue;
 
-    $sizeClass = ($i < 4) ? 'large' : 'small';
+    $sizeClass = ($i < 2) ? 'large' : 'small';
     $classes = "banner-item {$sizeClass}";
 
     $imgStyle = "background-color: ".htmlspecialcharsbx($banner['COLOR']).";";
