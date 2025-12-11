@@ -1,57 +1,67 @@
 <?php if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 /** @var array $arResult */
-
-$set = $arResult['SET'] ?? [];
-$globalBg = "";
-if ($set && $set['TEXT_BG_SHOW'] == 'Y') {
-    $hex = $set['TEXT_BG_COLOR'] ?: '#ffffff';
-    $op = isset($set['TEXT_BG_OPACITY']) ? (int)$set['TEXT_BG_OPACITY'] : 90;
-    $hex = ltrim($hex, '#');
-    if(strlen($hex)==3) { $r=hexdec($hex[0].$hex[0]); $g=hexdec($hex[1].$hex[1]); $b=hexdec($hex[2].$hex[2]); }
-    else { $r=hexdec(substr($hex,0,2)); $g=hexdec(substr($hex,2,2)); $b=hexdec(substr($hex,4,2)); }
-    $globalBg = "background-color: rgba($r, $g, $b, ".($op/100).");";
-}
 ?>
-<div class="my-banner-grid">
-<?php foreach($arResult['BANNERS'] as $i => $banner):
-    if(!$banner) continue;
+<div class="my-banner-grid-public">
+    <?php foreach($arResult['BANNERS'] as $i => $banner): 
+        if(!$banner) continue;
 
-    $sizeClass = ($i < 2) ? 'large' : 'small';
-    $classes = "banner-item {$sizeClass}";
+        // Grid classes based on slot index, as per new spec
+        $colClass = ($banner['SLOT_INDEX'] <= 4) ? 'span-2' : 'span-1';
+        $heightClass = ($banner['SLOT_INDEX'] <= 2) ? 'h-large' : 'h-small'; // A more semantic naming
+        
+        $hoverClass = ($banner['HOVER_ANIMATION'] == 'Y') ? 'hover-anim' : '';
+        
+        // --- Inline Styles ---
+        // Background
+        $bgStyle = "background-image: url('".htmlspecialcharsbx($banner['IMAGE'])."'); ";
+        $bgStyle .= "background-position: " . ($banner['IMG_POS_X'] ?? '50') . "% " . ($banner['IMG_POS_Y'] ?? '50') . "%; ";
+        $bgStyle .= "background-size: " . ($banner['IMG_SCALE'] ?? '100') . "%; ";
+        $bgStyle .= "background-repeat: no-repeat; ";
+        if (!$banner['IMAGE']) {
+            $bgStyle .= "background-color: ".htmlspecialcharsbx($banner['COLOR'] ?: '#f0f0f0').";";
+        }
 
-    $imgStyle = "background-color: ".htmlspecialcharsbx($banner['COLOR']).";";
-    if($banner['IMAGE']) {
-       $imgStyle .= " background-image: url('".htmlspecialcharsbx($banner['IMAGE'])."');";
-       $scale = $banner['IMG_SCALE'] ? (int)$banner['IMG_SCALE'] : 100;
-       $posX = isset($banner['IMG_POS_X']) ? (int)$banner['IMG_POS_X'] : 50;
-       $posY = isset($banner['IMG_POS_Y']) ? (int)$banner['IMG_POS_Y'] : 50;
-       $imgStyle .= " background-size: {$scale}%; background-position: {$posX}% {$posY}%;";
-    }
+        // Text wrapper (for background color)
+        $textWrapperStyle = '';
+        if ($banner['TEXT_BG_SHOW'] === 'Y') {
+            $hex = $banner['TEXT_BG_COLOR'] ?: '#ffffff';
+            $op = isset($banner['TEXT_BG_OPACITY']) ? (int)$banner['TEXT_BG_OPACITY'] : 70;
+            $hex = ltrim($hex, '#');
+            if(strlen($hex)==3) { $r=hexdec($hex[0].$hex[0]); $g=hexdec($hex[1].$hex[1]); $b=hexdec($hex[2].$hex[2]); }
+            else { $r=hexdec(substr($hex,0,2)); $g=hexdec(substr($hex,2,2)); $b=hexdec(substr($hex,4,2)); }
+            $textWrapperStyle = "background-color: rgba($r, $g, $b, ".($op/100).");";
+        }
 
-    $textColor = $banner['TEXT_COLOR'] ?: '#000000';
-    $textAlign = $banner['TEXT_ALIGN'] ?: 'center';
+        // Base text style
+        $baseTextStyle = "color: ".($banner['TEXT_COLOR'] ?: '#ffffff').";";
+        if ($banner['TEXT_STROKE_WIDTH'] > 0) {
+            $baseTextStyle .= "-webkit-text-stroke: ".$banner['TEXT_STROKE_WIDTH']."px ".($banner['TEXT_STROKE_COLOR'] ?: '#000000').";";
+        }
 
-    // Обработка размеров шрифта с добавлением 'px' для числовых значений
-    $tSize = (is_numeric($banner['TITLE_FONT_SIZE']) && $banner['TITLE_FONT_SIZE'] > 0) ? $banner['TITLE_FONT_SIZE'].'px' : ($banner['TITLE_FONT_SIZE'] ?: '22px');
-    $sSize = (is_numeric($banner['SUBTITLE_FONT_SIZE']) && $banner['SUBTITLE_FONT_SIZE'] > 0) ? $banner['SUBTITLE_FONT_SIZE'].'px' : ($banner['SUBTITLE_FONT_SIZE'] ?: '14px');
-    
-    $titleStyle = "font-size:" . $tSize . ";";
-    $titleStyle .= ($banner['TITLE_BOLD'] == 'Y') ? "font-weight:bold;" : "font-weight:normal;";
-    $titleStyle .= ($banner['TITLE_ITALIC'] == 'Y') ? "font-style:italic;" : "";
-    $titleStyle .= ($banner['TITLE_UNDERLINE'] == 'Y') ? "text-decoration:underline;" : "";
+        // Title style
+        $titleStyle = $baseTextStyle;
+        $titleStyle .= "font-size:" . ($banner['TITLE_FONT_SIZE'] ?: '22px') . ";";
+        $titleStyle .= "font-weight:" . ($banner['TITLE_BOLD'] == 'Y' ? "bold;" : "normal;");
+        $titleStyle .= "font-style:" . ($banner['TITLE_ITALIC'] == 'Y' ? "italic;" : "normal;");
+        $titleStyle .= "text-decoration:" . ($banner['TITLE_UNDERLINE'] == 'Y' ? "underline;" : "none;");
 
-    $subtitleStyle = "font-size:" . $sSize . ";";
-    if ($banner['SUBTITLE_BOLD'] == 'Y') $subtitleStyle .= "font-weight:bold;";
-    if ($banner['SUBTITLE_ITALIC'] == 'Y') $subtitleStyle .= "font-style:italic;";
-    if ($banner['SUBTITLE_UNDERLINE'] == 'Y') $subtitleStyle .= "text-decoration:underline;";
-?>
-    <a href="<?=htmlspecialcharsbx($banner['LINK'])?>" class="<?=$classes?>" style="<?=$imgStyle?>">
-        <div class="banner-slot-content text-<?=$textAlign?>" style="color: <?=$textColor?>;">
-            <div class="b-text-wrapper" style="<?=$globalBg?>">
-                <?php if($banner['TITLE']): ?><div class="b-title banner-clamp" style="<?=$titleStyle?>"><?=$banner['TITLE']?></div><?php endif; ?>
-                <?php if($banner['SUBTITLE']): ?><div class="b-sub banner-clamp" style="<?=$subtitleStyle?>"><?=$banner['SUBTITLE']?></div><?php endif; ?>
-            </div>
+        // Subtitle style
+        $subtitleStyle = $baseTextStyle;
+        $subtitleStyle .= "font-size:" . ($banner['SUBTITLE_FONT_SIZE'] ?: '14px') . ";";
+        $subtitleStyle .= "font-weight:" . ($banner['SUBTITLE_BOLD'] == 'Y' ? "bold;" : "normal;");
+        $subtitleStyle .= "font-style:" . ($banner['SUBTITLE_ITALIC'] == 'Y' ? "italic;" : "normal;");
+        $subtitleStyle .= "text-decoration:" . ($banner['SUBTITLE_UNDERLINE'] == 'Y' ? "underline;" : "none;");
+    ?>
+    <a href="<?=htmlspecialcharsbx($banner['LINK'])?>" class="banner-item <?=$colClass?> <?=$heightClass?> <?=$hoverClass?>" style="<?=$bgStyle?>">
+        <div class="content-wrapper" style="<?=$textWrapperStyle?>">
+            <?php if(!empty($banner['TITLE'])): ?>
+                <div class="title" style="<?=$titleStyle?>"><?=$banner['TITLE']?></div>
+            <?php endif; ?>
+            <?php if(!empty($banner['SUBTITLE'])): ?>
+                <div class="subtitle" style="<?=$subtitleStyle?>"><?=$banner['SUBTITLE']?></div>
+            <?php endif; ?>
         </div>
     </a>
-<?php endforeach; ?>
+    <?php endforeach; ?>
 </div>
+

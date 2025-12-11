@@ -86,6 +86,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     .page-title-section h1 { font-size: 24px; font-weight: 700; color: #333; margin: 0 0 5px 0; display: flex; align-items: center; gap: 12px; }
     .page-subtitle { color: #64748b; font-size: 14px; margin: 0; }
     .header-actions { display: flex; gap: 12px; }
+    .adm-btn.adm-btn-danger { background-color: #fce8e6; border-color: #f6d2cd; color: #c5245; }
+    .adm-btn.adm-btn-danger:hover { background-color: #f9d8d4; }
+    
+    #log-viewer-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10200; justify-content: center; align-items: center; }
+    #log-viewer-popup .popup-content { display: flex; flex-direction: column; width: 80%; max-width: 900px; height: 80vh; background: #fff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+    #log-viewer-popup .popup-header { padding: 15px 20px; font-size: 16px; font-weight: bold; border-bottom: 1px solid #ddd; }
+    #log-viewer-popup .popup-body { flex-grow: 1; padding: 5px; }
+    #log-viewer-popup #log-content-area { width: 100%; height: 100%; border: none; resize: none; padding: 10px; font-family: monospace; font-size: 12px; background: #f4f4f4; }
+    #log-viewer-popup .popup-footer { padding: 10px 20px; border-top: 1px solid #ddd; display: flex; justify-content: flex-end; gap: 10px; }
+
     .filter-bar { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
     .search-box { flex: 1; min-width: 300px; position: relative; }
     #searchSet { width: 100%; padding-left: 35px !important; }
@@ -115,13 +125,23 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     #view-editor .settings-panel { flex: 1; padding: 20px; overflow-y: auto; background: #f9f9f9; }
     #view-editor .right-panel { flex: 1; padding: 20px; display: flex; justify-content: center; align-items: flex-start; background: #e8e8e8; overflow: auto; }
     #view-editor .banner-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; width: 100%; max-width: 1000px; }
-    #view-editor .banner-block { background-size: cover; background-position: center; border: 3px solid transparent; border-radius: 6px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; min-height: 150px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-    #view-editor .banner-block.large { grid-column: span 2; min-height: 280px; }
-    #view-editor .banner-block.small { grid-column: span 1; min-height: 200px; }
+    #view-editor .banner-block { background-size: cover; background-position: center; border: 3px solid transparent; border-radius: 6px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; flex-direction: column; min-height: 150px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); justify-content: center; align-items: center; background-repeat: no-repeat; }
+    #view-editor .banner-block.large { grid-column: span 2; }
+    #view-editor .banner-block.small { grid-column: span 1; }
     #view-editor .banner-block.dragging { opacity: 0.5; transform: scale(0.95); }
     #view-editor .banner-block.drag-over { border-color: #27ae60; box-shadow: 0 0 20px rgba(39, 174, 96, 0.5); }
     #view-editor .banner-block:hover { border-color: #95a5a6; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
     #view-editor .banner-block.selected { border-color: var(--primary-color); box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3); }
+
+    .debug-sort { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.5); color: #fff; font-size: 10px; padding: 2px 4px; z-index: 10; border-radius: 3px; }
+
+    .banner-block.hover-anim .block-title-wrapper { 
+        opacity: 0; transform: translateY(10px); transition: all 0.3s; 
+    }
+    .banner-block.hover-anim:hover .block-title-wrapper { 
+        opacity: 1; transform: translateY(0); 
+    }
+
     #view-editor .block-title-wrapper { padding: 10px; border-radius: 8px; text-align: center; }
     #view-editor .block-title { font-size: 18px; font-weight: bold; line-height: 1.3; }
     #view-editor .block-text { font-size: 13px; line-height: 1.4; }
@@ -155,13 +175,25 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     #view-editor .btn { padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; border: 1px solid #ccc; }
     #view-editor .btn-primary { background: #28a745; color: white; border-color: #28a745; }
     #view-editor .btn-primary:hover { background: #218838; }
-    #view-editor .btn-secondary { background: #6c757d; color: white; border-color: #6c757d;}
-    #view-editor .btn-secondary:hover { background: #5a6268; }
-</style>
-
-<div id="view-list">
-    <div class="container">
-        <div class="page-header"><div class="page-title-section"><h1>🎨 Управление баннерами</h1><p class="page-subtitle">Создавайте и редактируйте рекламные сетки для вашего сайта</p></div><div class="header-actions"><button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать баннер</button></div></div>
+        #view-editor .btn-secondary { background: #6c757d; color: white; border-color: #6c757d;}
+        #view-editor .btn-secondary:hover { background: #5a6268; }
+    
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 10500; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 15px 20px; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); font-size: 14px; opacity: 0; transform: translateX(100%); transition: all 0.4s ease; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { background-color: #d4edda; color: #155724; border-left: 5px solid #28a745; }
+        .toast.error { background-color: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
+    </style>
+    
+    <div id="toast-container"></div>
+    
+    <div id="view-list">
+        <div class="container">
+            <div class="page-header"><div class="page-title-section"><h1>🎨 Управление баннерами</h1><p class="page-subtitle">Создавайте и редактируйте рекламные сетки для вашего сайта</p></div>
+            <div class="header-actions">
+                <button class="adm-btn" onclick="showLogViewer()">📄 ЛОГИ</button>
+                <button class="adm-btn adm-btn-save" onclick="createSet()">➕ Создать баннер</button>
+            </div></div>
         <div class="filter-bar"><div class="search-box"><input type="text" id="searchSet" class="adm-input" placeholder="Поиск по названию баннера..."></div></div>
         <div class="sets-grid" id="setsGrid">
             <?php if (empty($sets)): ?>
@@ -202,19 +234,59 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     </div>
 </div>
 
+<div id="log-viewer-popup" style="display:none;">
+    <div class="popup-content">
+        <div class="popup-header">Просмотр логов</div>
+        <div class="popup-body">
+            <textarea id="log-content-area" readonly>Загрузка...</textarea>
+        </div>
+        <div class="popup-footer">
+            <button class="adm-btn" onclick="downloadLog()">Скачать</button>
+            <button class="adm-btn" onclick="copyLogToClipboard()">Копировать</button>
+            <button class="adm-btn adm-btn-danger" onclick="clearLog()">Очистить лог</button>
+            <button class="adm-btn" onclick="hideLogViewer()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
 <div id="view-editor" style="display:none;">
     <div class="popup-overlay">
         <div class="popup-header">Конструктор баннера: <span id="popup-set-id"></span></div>
         <div class="popup-content">
             <div class="left-panel">
+                <div id="block-preview-container" style="padding: 20px; background: #e8e8e8; text-align: center; position: relative; min-height: 250px; display: flex; align-items: center; justify-content: center;">
+                    <div id="left-panel-preview" style="width: 100%; height: 100%; background-size: cover; background-position: center; border: 1px dashed #ccc;">
+                        <div id="left-panel-preview-text" style="padding: 10px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">
+                            <h3 id="left-panel-preview-title"></h3>
+                            <p id="left-panel-preview-subtitle"></p>
+                        </div>
+                    </div>
+                </div>
                 <div class="settings-panel">
+                    <div class="settings-group">
+                        <div class="section-title">Контент</div>
+                        <div class="control-row"><label for="titleInput">Заголовок</label><input type="text" id="titleInput" class="adm-input" oninput="updateContent('TITLE', this.value)"></div>
+                        <div class="control-row"><label for="subtitleInput">Подзаголовок</label><input type="text" id="subtitleInput" class="adm-input" oninput="updateContent('SUBTITLE', this.value)"></div>
+                         <div class="control-row"><label for="linkInput">Ссылка</label><input type="text" id="linkInput" class="adm-input" oninput="updateContent('LINK', this.value)"></div>
+                        <div class="control-row"><label for="sortInput">Сортировка</label><input type="number" id="sortInput" class="adm-input" style="width: 80px;" onchange="updateSort()"></div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="section-title">Изображение</div>
+                        <div class="control-row">
+                            <label>Ссылка на картинку:</label>
+                            <input type="text" id="imgUrlInput" class="adm-input" placeholder="/upload/..." onchange="updateImgFromUrl(this.value)">
+                        </div>
+                        <div class="control-row"><label>Масштаб:</label><div class="slider-container"><input type="range" min="10" max="250" value="100" id="scale"><span class="scale-label" id="scaleValue">100%</span></div></div>
+                        <p style="font-size:11px; color:#666; margin-top:0;">Для кадрирования, просто перетаскивайте изображение в окне предпросмотра.</p>
+                    </div>
+
                     <div class="settings-group">
                         <div class="section-title">Интеграция с каталогом</div>
                         <div class="control-row"><label for="iblockSelect">Инфоблок</label><select id="iblockSelect" class="adm-select"></select></div>
                         <div class="control-row"><label for="sectionSelect">Раздел</label><select id="sectionSelect" class="adm-select"></select></div>
-                        <div class="control-row"><label><input type="checkbox" id="hoverAnimation"> Использовать анимацию ховера</label></div>
                     </div>
-
+                    
                     <div class="quick-edit-section">
                         <div class="quick-edit-header">
                             <span class="quick-edit-title">Форматирование текста</span>
@@ -247,18 +319,13 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         <div class="section-title">Стили блока</div>
                         <div class="control-row"><input type="checkbox" id="textBg"><label for="textBg">Фон под текстом</label><input type="color" class="color-picker" id="textBgColor" value="#ffffff"></div>
                         <div class="control-row"><label>Прозрачность фона:</label><div class="slider-container"><input type="range" min="0" max="100" value="70" id="transparency"><input type="number" min="0" max="100" value="70" id="transparencyValue" style="width:60px"><span>%</span></div></div>
+                        <div class="control-row"><label><input type="checkbox" id="hoverAnimation"> Использовать анимацию ховера</label></div>
                     </div>
 
                      <div class="settings-group">
                         <div class="section-title">Обводка текста</div>
                         <div class="control-row"><label>Толщина (px):</label><input type="number" min="0" max="10" value="0" id="textStrokeWidth" style="width:60px"></div>
                         <div class="control-row"><label>Цвет:</label><input type="color" class="color-picker" id="textStrokeColor" value="#000000"></div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="section-title">Изображение</div>
-                        <div class="control-row"><label>Масштаб:</label><div class="slider-container"><input type="range" min="10" max="250" value="100" id="scale"><span class="scale-label" id="scaleValue">100%</span></div></div>
-                        <p style="font-size:11px; color:#666; margin-top:0;">Для кадрирования, просто перетаскивайте изображение в окне предпросмотра.</p>
                     </div>
                 </div>
             </div>
@@ -305,6 +372,104 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
     const iblockSelect = document.getElementById('iblockSelect');
     const sectionSelect = document.getElementById('sectionSelect');
     const hoverAnimationCheckbox = document.getElementById('hoverAnimation');
+    const leftPanelPreview = document.getElementById('left-panel-preview');
+    const titleInput = document.getElementById('titleInput');
+    const subtitleInput = document.getElementById('subtitleInput');
+    const linkInput = document.getElementById('linkInput');
+    const sortInput = document.getElementById('sortInput');
+
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 10); // Delay for transition
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, 3000);
+    }
+
+    function updateContent(field, value) {
+        if (!currentSelectedBlockData) return;
+        currentSelectedBlockData[field] = value;
+        updateRealTimePreview();
+    }
+
+    function updateSort() {
+        if (!currentSelectedBlockData) return;
+        currentSelectedBlockData.SORT = sortInput.value;
+        bannersData[currentEditedSetId].sort((a, b) => (parseInt(a.SORT) || 0) - (parseInt(b.SORT) || 0));
+        renderEditorGrid();
+        saveCurrentBlock();
+    }
+
+    function updateImgFromUrl(value) {
+        if (!currentSelectedBlockData) return;
+        currentSelectedBlockData.IMAGE = value;
+        document.getElementById('imgUrlInput').value = value; // Keep input in sync
+        updateRealTimePreview();
+        saveCurrentBlock(); // Also save immediately
+    }
+    
+    let isPanning = false;
+    let startX, startY, startPosX, startPosY;
+
+    leftPanelPreview.addEventListener('mousedown', e => {
+        if (!currentSelectedBlockData || !currentSelectedBlockData.IMAGE) return;
+        e.preventDefault();
+        isPanning = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startPosX = parseFloat(currentSelectedBlockData.IMG_POS_X) || 50;
+        startPosY = parseFloat(currentSelectedBlockData.IMG_POS_Y) || 50;
+        leftPanelPreview.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!isPanning) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const deltaX = (dx / leftPanelPreview.offsetWidth) * 100;
+        const deltaY = (dy / leftPanelPreview.offsetHeight) * 100;
+
+        currentSelectedBlockData.IMG_POS_X = (startPosX + deltaX).toFixed(2);
+        currentSelectedBlockData.IMG_POS_Y = (startPosY + deltaY).toFixed(2);
+
+        updateRealTimePreview();
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isPanning) return;
+        isPanning = false;
+        leftPanelPreview.style.cursor = 'grab';
+        saveCurrentBlock();
+    });
+
+    leftPanelPreview.addEventListener('mouseleave', () => {
+        if (isPanning) {
+            isPanning = false;
+            leftPanelPreview.style.cursor = 'grab';
+            saveCurrentBlock();
+        }
+    });
+
+
+    // Add event listeners for real-time preview updates
+    [textBgCheckbox, textBgColorInput, transparencySlider, transparencyValueInput, textStrokeWidthInput, textStrokeColorInput, textColorInput, headerSizeInput, announcementSizeInput, scaleSlider, hoverAnimationCheckbox].forEach(el => {
+        el.addEventListener('input', updateRealTimePreview);
+    });
+    formatButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            updateRealTimePreview();
+        });
+    });
+
 
     function openEditor(setId) {
         currentEditedSetId = setId;
@@ -328,7 +493,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         for (let i = 1; i <= 8; i++) {
             const block = blockMap[i] || {};
             const blockEl = document.createElement('div');
-            blockEl.className = `banner-block ${(i <= 2) ? 'large' : 'small'}`;
+            // New grid logic: 1-4 are large, 5-8 are small.
+            blockEl.className = `banner-block ${(i <= 4) ? 'large' : 'small'}`;
             blockEl.dataset.slotIndex = i;
             blockEl.draggable = true;
             blockEl.onclick = () => selectBlock(i);
@@ -344,16 +510,130 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             const textStyle = `color: ${block.TEXT_COLOR || '#000000'}; -webkit-text-stroke: ${textStroke};`;
             const titleStyle = `font-size:${block.TITLE_FONT_SIZE || '18px'}; ${block.TITLE_BOLD==='Y'?'font-weight:bold;':''} ${block.TITLE_ITALIC==='Y'?'font-style:italic;':''} ${block.TITLE_UNDERLINE==='Y'?'text-decoration:underline;':''}`;
             const subTitleStyle = `font-size:${block.SUBTITLE_FONT_SIZE || '13px'}; ${block.SUBTITLE_BOLD==='Y'?'font-weight:bold;':''} ${block.SUBTITLE_ITALIC==='Y'?'font-style:italic;':''} ${block.SUBTITLE_UNDERLINE==='Y'?'text-decoration:underline;':''}`;
-            blockEl.innerHTML = `<div class="block-title-wrapper" style="${backgroundStyle}"><div class="block-title" style="${textStyle} ${titleStyle}">${block.TITLE || ''}</div><div class="block-text" style="${textStyle} ${subTitleStyle}">${block.SUBTITLE || ''}</div></div>`;
+            blockEl.innerHTML = `<div class="debug-sort">${block.SORT || 0}</div><div class="block-title-wrapper" style="${backgroundStyle}"><div class="block-title" style="${textStyle} ${titleStyle}">${block.TITLE || ''}</div><div class="block-text" style="${textStyle} ${subTitleStyle}">${block.SUBTITLE || ''}</div></div>`;
             popupGridContainer.appendChild(blockEl);
         }
+    }
+    
+    function updateRealTimePreview() {
+        if (!currentSelectedBlockData) return;
+
+        // Find the block in the right-side grid
+        const gridBlock = popupGridContainer.querySelector(`.banner-block[data-slot-index='${currentSelectedSlotIndex}']`);
+
+        // --- Collect all style data from inputs ---
+        const data = {
+            // Keep existing text, don't fetch from inputs
+            TITLE: currentSelectedBlockData.TITLE, 
+            SUBTITLE: currentSelectedBlockData.SUBTITLE,
+            IMAGE: currentSelectedBlockData.IMAGE,
+            COLOR: currentSelectedBlockData.COLOR,
+            TEXT_BG_SHOW: textBgCheckbox.checked ? 'Y' : 'N',
+            TEXT_BG_COLOR: textBgColorInput.value,
+            TEXT_BG_OPACITY: transparencyValueInput.value,
+            TEXT_STROKE_WIDTH: textStrokeWidthInput.value,
+            TEXT_STROKE_COLOR: textStrokeColorInput.value,
+            TEXT_COLOR: textColorInput.value,
+            TITLE_FONT_SIZE: headerSizeInput.value + 'px',
+            SUBTITLE_FONT_SIZE: announcementSizeInput.value + 'px',
+            TITLE_BOLD: document.querySelector('.format-btn.active[data-format-type="header"][data-format-style="bold"]') ? 'Y' : 'N',
+            TITLE_ITALIC: document.querySelector('.format-btn.active[data-format-type="header"][data-format-style="italic"]') ? 'Y' : 'N',
+            TITLE_UNDERLINE: document.querySelector('.format-btn.active[data-format-type="header"][data-format-style="underline"]') ? 'Y' : 'N',
+            SUBTITLE_BOLD: document.querySelector('.format-btn.active[data-format-type="announcement"][data-format-style="bold"]') ? 'Y' : 'N',
+            SUBTITLE_ITALIC: document.querySelector('.format-btn.active[data-format-type="announcement"][data-format-style="italic"]') ? 'Y' : 'N',
+            SUBTITLE_UNDERLINE: document.querySelector('.format-btn.active[data-format-type="announcement"][data-format-style="underline"]') ? 'Y' : 'N',
+            IMG_SCALE: scaleSlider.value,
+            IMG_POS_X: currentSelectedBlockData.IMG_POS_X || 50,
+            IMG_POS_Y: currentSelectedBlockData.IMG_POS_Y || 50,
+            HOVER_ANIMATION: hoverAnimationCheckbox.checked ? 'Y' : 'N',
+        };
+        
+        scaleValueLabel.textContent = data.IMG_SCALE + '%';
+
+        // --- Define a renderer function ---
+        const renderBlock = (targetEl, textWrapperEl, titleEl, subtitleEl) => {
+            if (!targetEl) return;
+            
+            targetEl.style.transition = 'all 0.2s ease-out';
+
+            // Background
+            if (data.IMAGE) {
+                targetEl.style.backgroundImage = `url('${data.IMAGE}')`;
+                targetEl.style.backgroundSize = `${data.IMG_SCALE}%`;
+                targetEl.style.backgroundPosition = `${data.IMG_POS_X}% ${data.IMG_POS_Y}%`;
+                targetEl.style.backgroundRepeat = 'no-repeat';
+            } else {
+                targetEl.style.backgroundImage = 'none';
+                targetEl.style.backgroundColor = data.COLOR || '#f0f0f0';
+            }
+            
+            // Text background
+            const textBgRgba = `rgba(${parseInt(data.TEXT_BG_COLOR.slice(1, 3), 16)}, ${parseInt(data.TEXT_BG_COLOR.slice(3, 5), 16)}, ${parseInt(data.TEXT_BG_COLOR.slice(5, 7), 16)}, ${data.TEXT_BG_OPACITY / 100})`;
+            if (textWrapperEl) {
+                 textWrapperEl.style.backgroundColor = data.TEXT_BG_SHOW === 'Y' ? textBgRgba : 'transparent';
+                 textWrapperEl.style.padding = data.TEXT_BG_SHOW === 'Y' ? '10px' : '0';
+                 textWrapperEl.style.borderRadius = data.TEXT_BG_SHOW === 'Y' ? '8px' : '0';
+            }
+
+            // Text styles
+            const stroke = data.TEXT_STROKE_WIDTH > 0 ? `${data.TEXT_STROKE_WIDTH}px ${data.TEXT_STROKE_COLOR}` : 'none';
+            const baseTextStyle = `color: ${data.TEXT_COLOR}; -webkit-text-stroke: ${stroke}; text-shadow: ${stroke === 'none' ? '1px 1px 2px rgba(0,0,0,0.5)' : 'none'};`;
+            
+            if (titleEl) {
+                titleEl.style.cssText = baseTextStyle;
+                titleEl.style.fontSize = data.TITLE_FONT_SIZE;
+                titleEl.style.fontWeight = data.TITLE_BOLD === 'Y' ? 'bold' : 'normal';
+                titleEl.style.fontStyle = data.TITLE_ITALIC === 'Y' ? 'italic' : 'normal';
+                titleEl.style.textDecoration = data.TITLE_UNDERLINE === 'Y' ? 'underline' : 'none';
+                titleEl.textContent = data.TITLE;
+            }
+
+            if (subtitleEl) {
+                subtitleEl.style.cssText = baseTextStyle;
+                subtitleEl.style.fontSize = data.SUBTITLE_FONT_SIZE;
+                subtitleEl.style.fontWeight = data.SUBTITLE_BOLD === 'Y' ? 'bold' : 'normal';
+                subtitleEl.style.fontStyle = data.SUBTITLE_ITALIC === 'Y' ? 'italic' : 'normal';
+                subtitleEl.style.textDecoration = data.SUBTITLE_UNDERLINE === 'Y' ? 'underline' : 'none';
+                subtitleEl.textContent = data.SUBTITLE;
+            }
+            
+            targetEl.classList.toggle('hover-anim', data.HOVER_ANIMATION === 'Y');
+        };
+
+        // --- Apply to left panel preview ---
+        renderBlock(
+            document.getElementById('left-panel-preview'),
+            document.getElementById('left-panel-preview-text'),
+            document.getElementById('left-panel-preview-title'),
+            document.getElementById('left-panel-preview-subtitle')
+        );
+
+        // --- Apply to right grid block ---
+        if (gridBlock) {
+             renderBlock(
+                gridBlock,
+                gridBlock.querySelector('.block-title-wrapper'),
+                gridBlock.querySelector('.block-title'),
+                gridBlock.querySelector('.block-text')
+            );
+        }
+        
+        // Update data model silently
+        Object.assign(currentSelectedBlockData, data);
     }
     
     function selectBlock(slotIndex) {
         currentSelectedSlotIndex = slotIndex;
         const setBanners = bannersData[currentEditedSetId] || [];
-        currentSelectedBlockData = setBanners.find(b => b.SLOT_INDEX == slotIndex) || {SLOT_INDEX: slotIndex, SET_ID: currentEditedSetId};
+        currentSelectedBlockData = setBanners.find(b => b.SLOT_INDEX == slotIndex) || {SLOT_INDEX: slotIndex, SET_ID: currentEditedSetId, SORT: slotIndex * 10};
         document.querySelectorAll('#view-editor .banner-block').forEach(el => el.classList.toggle('selected', el.dataset.slotIndex == slotIndex));
+        
+        // --- Update ALL controls to reflect selected block's data ---
+        titleInput.value = currentSelectedBlockData.TITLE || '';
+        subtitleInput.value = currentSelectedBlockData.SUBTITLE || '';
+        linkInput.value = currentSelectedBlockData.LINK || '';
+        sortInput.value = currentSelectedBlockData.SORT || 0;
+        document.getElementById('imgUrlInput').value = currentSelectedBlockData.IMAGE || '';
         
         textBgCheckbox.checked = currentSelectedBlockData.TEXT_BG_SHOW === 'Y';
         textBgColorInput.value = currentSelectedBlockData.TEXT_BG_COLOR || '#ffffff';
@@ -362,23 +642,41 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         textStrokeWidthInput.value = currentSelectedBlockData.TEXT_STROKE_WIDTH || 0;
         textStrokeColorInput.value = currentSelectedBlockData.TEXT_STROKE_COLOR || '#000000';
         scaleSlider.value = currentSelectedBlockData.IMG_SCALE || 100;
-        scaleValueLabel.textContent = (currentSelectedBlockData.IMG_SCALE || 100) + '%';
         hoverAnimationCheckbox.checked = currentSelectedBlockData.HOVER_ANIMATION === 'Y';
         textColorInput.value = currentSelectedBlockData.TEXT_COLOR || '#000000';
         headerSizeInput.value = parseInt(currentSelectedBlockData.TITLE_FONT_SIZE) || 22;
         announcementSizeInput.value = parseInt(currentSelectedBlockData.SUBTITLE_FONT_SIZE) || 14;
+        
         formatButtons.forEach(btn => {
             const type = btn.dataset.formatType === 'header' ? 'TITLE' : 'SUBTITLE';
             const style = btn.dataset.formatStyle.toUpperCase();
             btn.classList.toggle('active', currentSelectedBlockData[`${type}_${style}`] === 'Y');
         });
+
+        // --- Trigger a preview update ---
+        updateRealTimePreview();
     }
 
     function saveCurrentBlock(andClose = false) {
-        if (!currentSelectedBlockData) return;
+        if (!currentEditedSetId || !currentSelectedSlotIndex) {
+            console.error("Critical: IDs missing before save.", { currentEditedSetId, currentSelectedSlotIndex });
+            showToast("Ошибка: Не выбран баннер или слот для сохранения. Пожалуйста, перезагрузите страницу и попробуйте снова.", 'error');
+            return;
+        }
+
+        if (!currentSelectedBlockData) {
+             showToast("Нет данных для сохранения. Выберите блок.", 'error');
+             return;
+        }
+
         const fd = new FormData();
         fd.append('action', 'save_slot');
         fd.append('sessid', '<?=bitrix_sessid()?>');
+        
+        // Ensure IDs are sent explicitly, matching backend expectations
+        fd.append('set_id', currentEditedSetId);
+        fd.append('slot_index', currentSelectedSlotIndex);
+
         Object.assign(currentSelectedBlockData, {
             TEXT_BG_SHOW: textBgCheckbox.checked ? 'Y' : 'N',
             TEXT_BG_COLOR: textBgColorInput.value,
@@ -388,7 +686,17 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             IMG_SCALE: scaleSlider.value,
             HOVER_ANIMATION: hoverAnimationCheckbox.checked ? 'Y' : 'N'
         });
-        for(const key in currentSelectedBlockData) { fd.append(key, currentSelectedBlockData[key]); }
+
+        // Append all data from the block object
+        for(const key in currentSelectedBlockData) { 
+            // Avoid duplicating the IDs if they have different casing
+            if (key.toLowerCase() !== 'set_id' && key.toLowerCase() !== 'slot_index') {
+                fd.append(key, currentSelectedBlockData[key]);
+            }
+        }
+        
+        // For debugging: log what we are sending
+        console.log("Sending data to save_slot:", Object.fromEntries(fd));
 
         fetch('mycompany_banner_ajax_save_banner.php', { method: 'POST', body: fd })
             .then(r => r.json()).then(res => {
@@ -397,10 +705,16 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     const index = bannersData[currentEditedSetId].findIndex(b => b.SLOT_INDEX == res.data.SLOT_INDEX);
                     if (index > -1) bannersData[currentEditedSetId][index] = res.data;
                     else bannersData[currentEditedSetId].push(res.data);
-                    currentSelectedBlockData = res.data;
-                    renderEditorGrid();
+                    
+                    // After successful save, re-select the block to update the data model and UI
+                    selectBlock(currentSelectedSlotIndex); 
+                    renderEditorGrid(); // Re-render the grid to show changes
+                    
                     if(andClose) closeEditor();
-                } else alert('Ошибка сохранения: ' + (res.errors ? res.errors.join('\n') : ''));
+                } else {
+                    showToast('Ошибка сохранения: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'), 'error');
+                    console.error("Save failed. Server response:", res);
+                }
             });
     }
     
@@ -421,12 +735,21 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
             SUBTITLE_ITALIC: document.querySelector('.format-btn[data-format-type="announcement"][data-format-style="italic"]').classList.contains('active') ? 'Y' : 'N',
             SUBTITLE_UNDERLINE: document.querySelector('.format-btn[data-format-type="announcement"][data-format-style="underline"]').classList.contains('active') ? 'Y' : 'N',
         };
+
         if (editMode === 'local') {
-            if (!currentSelectedBlockData) { alert('Сначала выберите блок для редактирования.'); return; }
+            if (!currentSelectedBlockData) { showToast('Сначала выберите блок для редактирования.', 'error'); return; }
             Object.assign(currentSelectedBlockData, changes);
+            updateRealTimePreview(); // Update preview for local changes
             saveCurrentBlock();
         } else {
-            bannersData[currentEditedSetId]?.forEach(block => Object.assign(block, changes));
+            // Global mode
+            const setBanners = bannersData[currentEditedSetId];
+            if (setBanners) {
+                setBanners.forEach(block => {
+                    Object.assign(block, changes); // Apply changes to each block in the data model
+                });
+            }
+            renderEditorGrid(); // Re-render the entire grid to show global changes
             saveGlobalStyles(changes);
         }
     }
@@ -439,8 +762,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         for (const key in changes) { fd.append('styles[' + key + ']', changes[key]); }
         fetch('mycompany_banner_ajax_save_banner.php', { method: 'POST', body: fd })
             .then(r => r.json()).then(res => {
-                if (res.success) { alert('Глобальные стили применены.'); renderEditorGrid(); } 
-                else { alert('Ошибка: ' + (res.errors ? res.errors.join('\n') : '')); }
+                if (res.success) { showToast('Глобальные стили применены.'); renderEditorGrid(); } 
+                else { showToast('Ошибка: ' + (res.errors ? res.errors.join('\n') : ''), 'error'); }
             });
     }
 
@@ -469,7 +792,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                         [banner1.SORT, banner2.SORT] = [banner2.SORT, banner1.SORT];
                     }
                     renderEditorGrid();
-                } else { alert('Ошибка смены порядка: ' + (res.errors ? res.errors.join('\n') : '')); }
+                } else { showToast('Ошибка смены порядка: ' + (res.errors ? res.errors.join('\n') : ''), 'error'); }
             });
         }
         draggedSlot = null;
@@ -481,6 +804,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         fetch(`mycompany_banner_ajax_save_banner.php?action=get_section_data&section_id=${sectionSelect.value}&sessid=<?=bitrix_sessid()?>`).then(r=>r.json()).then(res => {
              if(res.success && currentSelectedBlockData) {
                 Object.assign(currentSelectedBlockData, { TITLE: res.data.NAME, SUBTITLE: res.data.DESCRIPTION, IMAGE: res.data.PICTURE, LINK: res.data.SECTION_PAGE_URL });
+                document.getElementById('imgUrlInput').value = res.data.PICTURE || ''; // Update the input field
                 saveCurrentBlock();
              }
         });
@@ -522,7 +846,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
         const autoFillCheckbox = document.getElementById('newSetAuto');
         const name = nameInput.value.trim();
         if (!name) {
-            alert('Пожалуйста, введите название баннера.');
+            showToast('Пожалуйста, введите название баннера.', 'error');
             nameInput.focus();
             return;
         }
@@ -549,13 +873,78 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     // После перезагрузки, можно было бы открывать редактор, но это усложнит код
                     // openEditor(res.data.set.ID);
                 } else {
-                    alert('Ошибка создания: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'));
+                    showToast('Ошибка создания: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'), 'error');
                 }
             })
             .finally(() => {
                 doCreateBtn.disabled = false;
             });
     }
+
+    function showLogViewer() {
+        const popup = document.getElementById('log-viewer-popup');
+        const logArea = document.getElementById('log-content-area');
+        popup.style.display = 'flex';
+        logArea.value = 'Загрузка...';
+
+        fetch(`mycompany_banner_ajax_save_banner.php?action=get_log&sessid=<?=bitrix_sessid()?>`)
+            .then(response => response.json())
+            .then(res => {
+                if (res.success) {
+                    logArea.value = res.data;
+                    logArea.scrollTop = logArea.scrollHeight;
+                } else {
+                    logArea.value = 'Не удалось загрузить лог.';
+                }
+            });
+    }
+
+    function hideLogViewer() {
+        document.getElementById('log-viewer-popup').style.display = 'none';
+    }
+
+    function clearLog() {
+        if (!confirm('Вы уверены, что хотите очистить файл лога? Это действие нельзя отменить.')) {
+            return;
+        }
+        const logArea = document.getElementById('log-content-area');
+        fetch(`mycompany_banner_ajax_save_banner.php?action=clear_log&sessid=<?=bitrix_sessid()?>`)
+            .then(response => response.json())
+            .then(res => {
+                if (res.success) {
+                    logArea.value = 'Лог очищен.';
+                    showToast('Лог успешно очищен.');
+                } else {
+                    showToast('Не удалось очистить лог.', 'error');
+                }
+            });
+    }
+
+    function copyLogToClipboard() {
+        const text = document.getElementById('log-content-area').value;
+        if (!navigator.clipboard) {
+            showToast('Clipboard API не поддерживается в вашем браузере.', 'error');
+            return;
+        }
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Лог скопирован в буфер обмена.');
+        }, () => {
+            showToast('Ошибка при копировании в буфер обмена.', 'error');
+        });
+    }
+
+    function downloadLog() {
+        const text = document.getElementById('log-content-area').value;
+        const blob = new Blob([text], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `mycompany_banner_log_${new Date().toISOString().slice(0,10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
     function deleteSet(id, name, event) {
         event.stopPropagation();
         if (!confirm(`Вы уверены, что хотите удалить баннер "${name}"? Это действие нельзя отменить.`)) {
@@ -581,7 +970,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
                     delete currentSets[id];
                     delete bannersData[id];
                 } else {
-                    alert('Ошибка удаления: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'));
+                    showToast('Ошибка удаления: ' + (res.errors ? res.errors.join('\\n') : 'Неизвестная ошибка.'), 'error');
                 }
             });
     }
